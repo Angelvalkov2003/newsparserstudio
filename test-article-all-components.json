@@ -1,0 +1,305 @@
+{
+  "url": "https://example.com/test-article-all-components",
+  "data_parsed": {
+    "metadata": {
+      "title": "Test Article – All Component Types",
+      "document_date": "2025-02-22T14:30:00Z",
+      "authors": [
+        { "name": "Test Author", "url": "https://example.com/author/test" },
+        { "name": "Second Author" }
+      ],
+      "categories": [
+        { "name": "Technology", "url": "https://example.com/cat/tech" },
+        { "name": "News" }
+      ],
+      "tags": [
+        { "name": "test", "url": "https://example.com/tag/test" },
+        { "name": "demo" }
+      ]
+    },
+    "components": [
+      {
+        "id": "test-comp-1",
+        "type": "heading",
+        "text": "Introduction",
+        "level": 1
+      },
+      {
+        "id": "test-comp-2",
+        "type": "paragraph",
+        "text": "This is a **test article** with many component types so you can see how they render and edit. Below you will find heading, paragraph, image, link, code block, equation, citation, footnote, horizontal ruler, list, poll, table, and video."
+      },
+      {
+        "id": "test-comp-3",
+        "type": "heading",
+        "text": "Image and link",
+        "level": 2
+      },
+      {
+        "id": "test-comp-4",
+        "type": "image",
+        "url": "https://picsum.photos/600/300",
+        "caption": "Sample image from Picsum",
+        "description": "Random placeholder image"
+      },
+      {
+        "id": "test-comp-5",
+        "type": "link",
+        "text": "Open example.com",
+        "url": "https://example.com"
+      },
+      {
+        "id": "test-comp-6",
+        "type": "heading",
+        "text": "Code and equation",
+        "level": 2
+      },
+      {
+        "id": "test-comp-7",
+        "type": "code_block",
+        "code": "function greet(name) {\n  return `Hello, ${name}!`;\n}\nconsole.log(greet('World'));",
+        "language": "javascript"
+      },
+      {
+        "id": "test-comp-8",
+        "type": "equation",
+        "latex": "E = mc^2",
+        "equation_number": 1
+      },
+      {
+        "id": "test-comp-9",
+        "type": "citation",
+        "citation_text": "The only way to do great work is to love what you do.",
+        "author_text": "Steve Jobs"
+      },
+      {
+        "id": "test-comp-10",
+        "type": "footnote",
+        "identifier": "1",
+        "content": "This is a footnote with extra information or a reference."
+      },
+      {
+        "id": "test-comp-11",
+        "type": "horizontal_ruler"
+      },
+      {
+        "id": "test-comp-12",
+        "type": "heading",
+        "text": "List",
+        "level": 2
+      },
+      {
+        "id": "test-comp-13",
+        "type": "list",
+        "items": [
+          { "indent": 0, "bullet": "-", "content": "First top-level item" },
+          { "indent": 1, "bullet": "-", "content": "Nested item" },
+          { "indent": 0, "bullet": "-", "content": "Second top-level item" },
+          { "indent": 0, "bullet": "1.", "content": "Numbered item one" },
+          { "indent": 0, "bullet": "2.", "content": "Numbered item two" }
+        ]
+      },
+      {
+        "id": "test-comp-14",
+        "type": "heading",
+        "text": "Poll",
+        "level": 2
+      },
+      {
+        "id": "test-comp-15",
+        "type": "poll",
+        "question": "What is your favorite component type?",
+        "choices": ["Heading", "Paragraph", "Image", "Table", "Video"],
+        "allow_multiple": false,
+        "poll_name": "Quick poll"
+      },
+      {
+        "id": "test-comp-16",
+        "type": "heading",
+        "text": "Table",
+        "level": 2
+      },
+      {
+        "id": "test-comp-17",
+        "type": "table",
+        "headers": ["Component", "Required fields", "Optional"],
+        "rows": [
+          ["heading", "text", "level"],
+          ["paragraph", "text", "—"],
+          ["image", "—", "url, caption, description, link_url"],
+          ["table", "headers, rows", "caption"]
+        ],
+        "caption": "Example component summary"
+      },
+      {
+        "id": "test-comp-18",
+        "type": "heading",
+        "text": "Video",
+        "level": 2
+      },
+      {
+        "id": "test-comp-19",
+        "type": "video",
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "name": "Sample video link",
+        "caption": "Optional caption below the video link."
+      },
+      {
+        "id": "test-comp-20",
+        "type": "paragraph",
+        "text": "End of test article. Use Load in the app to open this file and try Edit, reorder, and Download."
+      }
+    ]
+  },
+  "data_corrected": {
+    "metadata": {
+      "title": "Test Article – All Component Types",
+      "document_date": "2025-02-22T14:30:00Z",
+      "authors": [
+        { "name": "Test Author", "url": "https://example.com/author/test" },
+        { "name": "Second Author" }
+      ],
+      "categories": [
+        { "name": "Technology", "url": "https://example.com/cat/tech" },
+        { "name": "News" }
+      ],
+      "tags": [
+        { "name": "test", "url": "https://example.com/tag/test" },
+        { "name": "demo" }
+      ]
+    },
+    "components": [
+      {
+        "id": "test-comp-1",
+        "type": "heading",
+        "text": "Introduction",
+        "level": 1
+      },
+      {
+        "id": "test-comp-2",
+        "type": "paragraph",
+        "text": "This is a **test article** with many component types so you can see how they render and edit. Below you will find heading, paragraph, image, link, code block, equation, citation, footnote, horizontal ruler, list, poll, table, and video."
+      },
+      {
+        "id": "test-comp-3",
+        "type": "heading",
+        "text": "Image and link",
+        "level": 2
+      },
+      {
+        "id": "test-comp-4",
+        "type": "image",
+        "url": "https://picsum.photos/600/300",
+        "caption": "Sample image from Picsum",
+        "description": "Random placeholder image"
+      },
+      {
+        "id": "test-comp-5",
+        "type": "link",
+        "text": "Open example.com",
+        "url": "https://example.com"
+      },
+      {
+        "id": "test-comp-6",
+        "type": "heading",
+        "text": "Code and equation",
+        "level": 2
+      },
+      {
+        "id": "test-comp-7",
+        "type": "code_block",
+        "code": "function greet(name) {\n  return `Hello, ${name}!`;\n}\nconsole.log(greet('World'));",
+        "language": "javascript"
+      },
+      {
+        "id": "test-comp-8",
+        "type": "equation",
+        "latex": "E = mc^2",
+        "equation_number": 1
+      },
+      {
+        "id": "test-comp-9",
+        "type": "citation",
+        "citation_text": "The only way to do great work is to love what you do.",
+        "author_text": "Steve Jobs"
+      },
+      {
+        "id": "test-comp-10",
+        "type": "footnote",
+        "identifier": "1",
+        "content": "This is a footnote with extra information or a reference."
+      },
+      {
+        "id": "test-comp-11",
+        "type": "horizontal_ruler"
+      },
+      {
+        "id": "test-comp-12",
+        "type": "heading",
+        "text": "List",
+        "level": 2
+      },
+      {
+        "id": "test-comp-13",
+        "type": "list",
+        "items": [
+          { "indent": 0, "bullet": "-", "content": "First top-level item" },
+          { "indent": 1, "bullet": "-", "content": "Nested item" },
+          { "indent": 0, "bullet": "-", "content": "Second top-level item" },
+          { "indent": 0, "bullet": "1.", "content": "Numbered item one" },
+          { "indent": 0, "bullet": "2.", "content": "Numbered item two" }
+        ]
+      },
+      {
+        "id": "test-comp-14",
+        "type": "heading",
+        "text": "Poll",
+        "level": 2
+      },
+      {
+        "id": "test-comp-15",
+        "type": "poll",
+        "question": "What is your favorite component type?",
+        "choices": ["Heading", "Paragraph", "Image", "Table", "Video"],
+        "allow_multiple": false,
+        "poll_name": "Quick poll"
+      },
+      {
+        "id": "test-comp-16",
+        "type": "heading",
+        "text": "Table",
+        "level": 2
+      },
+      {
+        "id": "test-comp-17",
+        "type": "table",
+        "headers": ["Component", "Required fields", "Optional"],
+        "rows": [
+          ["heading", "text", "level"],
+          ["paragraph", "text", "—"],
+          ["image", "—", "url, caption, description, link_url"],
+          ["table", "headers, rows", "caption"]
+        ],
+        "caption": "Example component summary"
+      },
+      {
+        "id": "test-comp-18",
+        "type": "heading",
+        "text": "Video",
+        "level": 2
+      },
+      {
+        "id": "test-comp-19",
+        "type": "video",
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "name": "Sample video link",
+        "caption": "Optional caption below the video link."
+      },
+      {
+        "id": "test-comp-20",
+        "type": "paragraph",
+        "text": "End of test article. Use Load in the app to open this file and try Edit, reorder, and Download."
+      }
+    ]
+  }
+}

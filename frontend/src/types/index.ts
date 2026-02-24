@@ -1,0 +1,33 @@
+export type {
+  ArticleMetadata,
+  ArticleBody,
+  ArticleDataParsed,
+  ArticleDataCorrected,
+  NewsArticle,
+  ComponentBase,
+  ArticleComponent,
+  ArticleComponentType,
+  HeadingComponent,
+  ParagraphComponent,
+  ImageComponent,
+  LinkComponent,
+  CodeBlockComponent,
+  EquationComponent,
+  CitationComponent,
+  FootnoteComponent,
+  HorizontalRulerComponent,
+} from "./article";
+
+export {
+  COMPONENT_TYPES,
+  isHeading,
+  isParagraph,
+  isImage,
+  isLink,
+  isCodeBlock,
+  isEquation,
+  isCitation,
+  isFootnote,
+  isHorizontalRuler,
+  getComponentType,
+} from "./article";
