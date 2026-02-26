@@ -6,7 +6,7 @@ import type { ArticleComponent } from "../../types";
 import type { Dispatch } from "react";
 import type { ArticleEditorAction } from "../../state/articleEditorState";
 import { ComponentPreview } from "../preview/ComponentPreview";
-import { ComponentJsonEditor } from "./editors/ComponentJsonEditor";
+import { ComponentEditor } from "./editors/ComponentEditor";
 
 interface SortableComponentItemProps {
   component: ArticleComponent;
@@ -30,6 +30,7 @@ export function SortableComponentItem({
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const initialComponentRef = useRef<ArticleComponent | null>(null);
   const {
     attributes,
     listeners,
@@ -67,8 +68,17 @@ export function SortableComponentItem({
   };
 
   const handleEdit = () => {
+    initialComponentRef.current = JSON.parse(JSON.stringify(component));
     setIsEditing(true);
     setMenuOpen(false);
+  };
+
+  const handleUndo = () => {
+    if (initialComponentRef.current) {
+      onComponentChange(index, initialComponentRef.current);
+      initialComponentRef.current = null;
+    }
+    setIsEditing(false);
   };
 
   const handleDelete = () => {
@@ -126,14 +136,27 @@ export function SortableComponentItem({
       </div>
       {isEditing && (
         <div className="component-list-item-editor-wrap">
-          <ComponentJsonEditor
+          <ComponentEditor
             component={component}
-            onApply={(next) => {
-              onComponentChange(index, next);
-              setIsEditing(false);
-            }}
-            onCancel={() => setIsEditing(false)}
+            index={index}
+            onChange={onComponentChange}
           />
+          <div className="component-editor-actions">
+            <button
+              type="button"
+              className="editor-button editor-button--secondary component-editor-undo"
+              onClick={handleUndo}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="component-editor-done"
+              onClick={() => setIsEditing(false)}
+            >
+              Done
+            </button>
+          </div>
         </div>
       )}
     </li>

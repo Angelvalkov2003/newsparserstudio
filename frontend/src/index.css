@@ -5,7 +5,7 @@
 
   color-scheme: light;
   color: #1a1a1a;
-  background-color: #ffffff;
+  background-color: #f0f2f5;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -16,7 +16,7 @@
   --editor-fg: #1a1a1a;
   --editor-border: #e0e0e0;
   --editor-muted: #666666;
-  --editor-toolbar-bg: #f5f5f5;
+  --editor-toolbar-bg: #f8f9fa;
   --editor-input-bg: #fafafa;
   --editor-card-bg: #fafafa;
   --editor-accent: #2563eb;
@@ -27,10 +27,14 @@
   --preview-fg: #1a1a1a;
   --preview-border: #e0e0e0;
   --preview-muted: #666666;
-  --preview-toolbar-bg: #f5f5f5;
+  --preview-toolbar-bg: #f8f9fa;
   --preview-input-bg: #fafafa;
   --preview-accent: #2563eb;
   --preview-code-bg: #f0f0f0;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 a {
@@ -65,14 +69,16 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #f5f5f5;
+  background-color: #ffffff;
   color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s, background-color 0.25s;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 button:hover {
   border-color: #2563eb;
   background-color: #eff6ff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
 }
 button:focus,
 button:focus-visible {

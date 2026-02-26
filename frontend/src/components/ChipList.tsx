@@ -6,45 +6,72 @@ interface ChipListProps {
   onChange: (next: MetadataItem[]) => void;
   placeholder?: string;
   label: string;
+  namePlaceholder?: string;
+  linkPlaceholder?: string;
 }
 
-export function ChipList({ values, onChange, placeholder = "Add…", label }: ChipListProps) {
-  const [input, setInput] = useState("");
+export function ChipList({
+  values,
+  onChange,
+  placeholder = "Add…",
+  label,
+  namePlaceholder,
+  linkPlaceholder = "Link (URL)",
+}: ChipListProps) {
+  const [newName, setNewName] = useState("");
+  const [newUrl, setNewUrl] = useState("");
 
   const add = () => {
-    const t = input.trim();
-    if (!t) return;
-    const exists = values.some((item) => item.name === t);
+    const name = newName.trim();
+    if (!name) return;
+    const exists = values.some((item) => item.name === name);
     if (exists) {
-      setInput("");
+      setNewName("");
+      setNewUrl("");
       return;
     }
-    onChange([...values, { name: t }]);
-    setInput("");
+    onChange([
+      ...values,
+      { name, url: newUrl.trim() || undefined },
+    ]);
+    setNewName("");
+    setNewUrl("");
   };
 
   const remove = (i: number) => {
     onChange(values.filter((_, j) => j !== i));
   };
 
+  const updateItem = (i: number, patch: Partial<MetadataItem>) => {
+    const next = values.slice();
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+
   return (
     <div className="chip-list-field">
       <span className="editor-label">{label}</span>
-      <div className="chip-list">
+      <div className="chip-list chip-list--with-links">
         {values.map((item, i) => (
-          <span key={`${item.name}-${i}`} className="chip">
-            {item.url ? (
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="chip-link"
-              >
-                {item.name}
-              </a>
-            ) : (
-              item.name
-            )}
+          <div key={`${item.name}-${i}`} className="chip-row">
+            <input
+              type="text"
+              className="chip-input chip-input-name"
+              value={item.name}
+              onChange={(e) => updateItem(i, { name: e.target.value })}
+              placeholder={namePlaceholder ?? placeholder}
+              aria-label={`${label} name`}
+            />
+            <input
+              type="url"
+              className="chip-input chip-input-link"
+              value={item.url ?? ""}
+              onChange={(e) =>
+                updateItem(i, { url: e.target.value.trim() || undefined })
+              }
+              placeholder={linkPlaceholder}
+              aria-label={`${label} link`}
+            />
             <button
               type="button"
               className="chip-remove"
@@ -53,23 +80,36 @@ export function ChipList({ values, onChange, placeholder = "Add…", label }: Ch
             >
               ×
             </button>
-          </span>
+          </div>
         ))}
-        <span className="chip-input-wrap">
+        <div className="chip-row chip-row--add">
           <input
             type="text"
-            className="chip-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
+            className="chip-input chip-input-name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
-            onBlur={add}
-            placeholder={placeholder}
-            aria-label={`Add ${label.toLowerCase()}`}
+            placeholder={namePlaceholder ?? placeholder}
+            aria-label={`Add ${label.toLowerCase()} name`}
           />
-          <button type="button" className="chip-add" onClick={add} aria-label="Add">
+          <input
+            type="url"
+            className="chip-input chip-input-link"
+            value={newUrl}
+            onChange={(e) => setNewUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+            placeholder={linkPlaceholder}
+            aria-label={`Add ${label.toLowerCase()} link`}
+          />
+          <button
+            type="button"
+            className="chip-add"
+            onClick={add}
+            aria-label="Add"
+          >
             +
           </button>
-        </span>
+        </div>
       </div>
     </div>
   );

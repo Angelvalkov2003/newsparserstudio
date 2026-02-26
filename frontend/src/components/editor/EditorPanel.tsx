@@ -1,7 +1,7 @@
 import type { Dispatch } from "react";
 import type { ArticleEditorState, ArticleEditorAction } from "../../state/articleEditorState";
 import { MetadataEditor } from "./MetadataEditor";
-import { AddComponentByJson } from "./AddComponentByJson";
+import { AddComponentByType } from "./AddComponentByType";
 import { ComponentList } from "./ComponentList";
 
 interface EditorPanelProps {
@@ -21,7 +21,7 @@ export function EditorPanel({ state, dispatch }: EditorPanelProps) {
           components={data_corrected.components}
           dispatch={dispatch}
         />
-        <AddComponentByJson
+        <AddComponentByType
           dispatch={dispatch}
           existingComponentIds={data_corrected.components.map((c) => c.id)}
         />

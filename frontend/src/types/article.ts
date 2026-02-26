@@ -14,6 +14,8 @@ export interface ArticleMetadata {
 export interface ComponentBase {
   id: string;
   type: string;
+  className?: string;
+  style?: string;
 }
 
 export interface HeadingComponent extends ComponentBase {

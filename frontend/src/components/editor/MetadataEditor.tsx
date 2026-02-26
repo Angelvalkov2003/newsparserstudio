@@ -29,18 +29,22 @@ export function MetadataEditor({ metadata, dispatch }: MetadataEditorProps) {
       </label>
 
       <label className="editor-field">
-        <span className="editor-label">Document date (ISO 8601)</span>
+        <span className="editor-label">Document date & time</span>
         <input
-          type="text"
+          type="datetime-local"
           className="editor-input"
-          value={metadata.document_date ?? ""}
+          value={
+            metadata.document_date
+              ? metadata.document_date.slice(0, 16)
+              : ""
+          }
           onChange={(e) =>
             update({
               ...metadata,
-              document_date: e.target.value.trim() || undefined,
+              document_date: e.target.value || undefined,
             })
           }
-          placeholder="e.g. 2025-01-15T12:00:00Z"
+          aria-label="Document date and time"
         />
       </label>
 

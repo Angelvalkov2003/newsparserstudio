@@ -4,7 +4,7 @@ import type { Dispatch } from "react";
 import type { ArticleEditorAction } from "../../state/articleEditorState";
 import { arrayMove } from "@dnd-kit/sortable";
 import { ComponentPreview } from "./ComponentPreview";
-import { ComponentJsonEditor } from "../editor/editors/ComponentJsonEditor";
+import { ComponentEditor } from "../editor/editors/ComponentEditor";
 
 interface PreviewComponentWrapProps {
   component: ArticleComponent;
@@ -24,6 +24,7 @@ export function PreviewComponentWrap({
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const initialComponentRef = useRef<ArticleComponent | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -40,8 +41,17 @@ export function PreviewComponentWrap({
   };
 
   const handleEdit = () => {
+    initialComponentRef.current = JSON.parse(JSON.stringify(component));
     setOpen(false);
     setIsEditing(true);
+  };
+
+  const handleUndo = () => {
+    if (initialComponentRef.current) {
+      dispatch({ type: "UPDATE_COMPONENT", payload: { index, component: initialComponentRef.current } });
+      initialComponentRef.current = null;
+    }
+    setIsEditing(false);
   };
 
   const handleMoveUp = () => {
@@ -91,14 +101,29 @@ export function PreviewComponentWrap({
       )}
       {isEditing && (
         <div className="preview-component-edit-wrap">
-          <ComponentJsonEditor
+          <ComponentEditor
             component={component}
-            onApply={(next) => {
-              dispatch({ type: "UPDATE_COMPONENT", payload: { index, component: next } });
-              setIsEditing(false);
+            index={index}
+            onChange={(idx, next) => {
+              dispatch({ type: "UPDATE_COMPONENT", payload: { index: idx, component: next } });
             }}
-            onCancel={() => setIsEditing(false)}
           />
+          <div className="component-editor-actions">
+            <button
+              type="button"
+              className="editor-button editor-button--secondary"
+              onClick={handleUndo}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="editor-button editor-button--primary"
+              onClick={() => setIsEditing(false)}
+            >
+              Done
+            </button>
+          </div>
         </div>
       )}
     </div>

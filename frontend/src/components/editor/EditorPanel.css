@@ -16,6 +16,7 @@
   font-weight: 600;
   border-bottom: 1px solid var(--editor-border, #313244);
   background: var(--editor-toolbar-bg, #181825);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
 }
 
 .editor-panel-content {
@@ -51,7 +52,8 @@
   font-size: 0.75rem;
   background: var(--editor-input-bg, #313244);
   border: 1px solid var(--editor-border, #45475a);
-  border-radius: 4px;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .chip-remove {
@@ -91,13 +93,15 @@
   font-family: inherit;
   background: var(--editor-input-bg, #313244);
   border: 1px solid var(--editor-border, #45475a);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--editor-fg, #cdd6f4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .chip-input:focus {
   outline: none;
   border-color: var(--editor-accent, #89b4fa);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(137, 180, 250, 0.2);
 }
 
 .chip-add {
@@ -116,6 +120,33 @@
 .chip-add:hover {
   background: var(--editor-accent, #89b4fa);
   color: #1e1e2e;
+}
+
+.chip-list--with-links {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.chip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.chip-row .chip-input-name {
+  flex: 0 0 10rem;
+  min-width: 0;
+}
+
+.chip-row .chip-input-link {
+  flex: 1;
+  min-width: 0;
+}
+
+.chip-row .chip-remove,
+.chip-row .chip-add {
+  flex-shrink: 0;
 }
 
 .editor-section {
@@ -160,9 +191,11 @@
   font-family: inherit;
   background: var(--editor-input-bg, #313244);
   border: 1px solid var(--editor-border, #45475a);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--editor-fg, #cdd6f4);
   box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .editor-input:focus,
@@ -170,6 +203,7 @@
 .editor-select:focus {
   outline: none;
   border-color: var(--editor-accent, #89b4fa);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 2px rgba(137, 180, 250, 0.25);
 }
 
 .editor-textarea {
@@ -198,17 +232,27 @@
   margin-bottom: 1rem;
   padding: 0.75rem;
   background: var(--editor-card-bg, #313244);
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--editor-border, #45475a);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.component-list-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-color: rgba(137, 180, 250, 0.2);
 }
 
 .component-list-item--menu-open {
   z-index: 30;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  border-color: var(--editor-accent, #89b4fa);
 }
 
 .component-list-item--dragging {
   z-index: 1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-color: var(--editor-accent, #89b4fa);
 }
 
 .component-list-item-body {
@@ -274,20 +318,29 @@
   margin-top: 0.5rem;
 }
 
-.component-editor-done {
+.component-editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   margin-top: 0.5rem;
+}
+
+.component-editor-done {
   padding: 0.35rem 0.75rem;
   font-size: 0.8125rem;
   font-family: inherit;
   color: var(--editor-fg, #cdd6f4);
-  background: var(--editor-input-bg, #313244);
-  border: 1px solid var(--editor-border, #45475a);
+  background: var(--editor-accent, #89b4fa);
+  color: #1e1e2e;
+  border: 1px solid var(--editor-accent, #89b4fa);
   border-radius: 6px;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(137, 180, 250, 0.35);
 }
 
 .component-editor-done:hover {
-  background: var(--editor-border, #45475a);
+  filter: brightness(1.08);
+  box-shadow: 0 3px 10px rgba(137, 180, 250, 0.4);
 }
 
 .component-list-item-actions {
@@ -321,12 +374,12 @@
   position: absolute;
   right: 0;
   top: 100%;
-  margin-top: 2px;
-  padding: 4px;
+  margin-top: 4px;
+  padding: 6px;
   background: var(--editor-toolbar-bg, #181825);
   border: 1px solid var(--editor-border, #45475a);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -360,6 +413,20 @@
 
 .component-editor {
   margin-top: 0.25rem;
+}
+
+.component-editor-style-section {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--editor-border, #45475a);
+}
+
+.component-editor-style-section > .editor-label:first-child {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--editor-muted, #a6adc8);
+  margin-bottom: 0.35rem;
 }
 
 .editor-empty,
@@ -414,10 +481,12 @@
   background: var(--editor-accent, #89b4fa);
   color: #1e1e2e;
   border-color: var(--editor-accent, #89b4fa);
+  box-shadow: 0 2px 6px rgba(137, 180, 250, 0.35);
 }
 
 .editor-button--primary:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
+  box-shadow: 0 3px 10px rgba(137, 180, 250, 0.4);
 }
 
 .editor-button--primary:disabled {
@@ -429,18 +498,71 @@
   background: var(--editor-input-bg, #313244);
   color: var(--editor-fg, #cdd6f4);
   border-color: var(--editor-border, #45475a);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .editor-button--secondary:hover {
   background: var(--editor-border, #45475a);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.editor-add-by-type .add-component-form {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--editor-border, #45475a);
+}
+
+.editor-add-by-type-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.list-editor-row,
+.poll-editor-choice-row,
+.table-editor-header-row,
+.table-editor-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.editor-input-narrow {
+  width: 4rem;
+  flex-shrink: 0;
+}
+
+.list-editor-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-editor-remove,
+.table-editor-row .editor-button,
+.table-editor-header-row .editor-button,
+.poll-editor-choice-row .editor-button {
+  flex-shrink: 0;
+}
+
+.table-editor-cell {
+  min-width: 4rem;
+  flex: 1;
+}
+
+.preview-component-edit-wrap .editor-button {
+  margin-top: 0.5rem;
 }
 
 .image-editor-preview {
   margin-bottom: 0.75rem;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--editor-input-bg, #313244);
   max-height: 160px;
+  border: 1px solid var(--editor-border, #45475a);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .image-editor-preview img {

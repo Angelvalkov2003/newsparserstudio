@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type {
   ArticleComponent,
   HeadingComponent,
@@ -27,44 +28,77 @@ import { ListPreview } from "./renderers/ListPreview";
 import { PollPreview } from "./renderers/PollPreview";
 import { TablePreview } from "./renderers/TablePreview";
 import { VideoPreview } from "./renderers/VideoPreview";
+import { parseInlineStyle } from "../../utils/parseInlineStyle";
 
 interface ComponentPreviewProps {
   component: ArticleComponent;
 }
 
+function wrapWithStyle(
+  component: ArticleComponent,
+  content: ReactNode
+) {
+  const hasClass = component.className?.trim();
+  const hasStyle = component.style?.trim();
+  if (!hasClass && !hasStyle) return content;
+  return (
+    <div
+      className={hasClass ? hasClass : undefined}
+      style={hasStyle ? parseInlineStyle(component.style) : undefined}
+    >
+      {content}
+    </div>
+  );
+}
+
 export function ComponentPreview({ component }: ComponentPreviewProps) {
+  let content: ReactNode;
   switch (component.type) {
     case "heading":
-      return <HeadingPreview component={component as HeadingComponent} />;
+      content = <HeadingPreview component={component as HeadingComponent} />;
+      break;
     case "paragraph":
-      return <ParagraphPreview component={component as ParagraphComponent} />;
+      content = <ParagraphPreview component={component as ParagraphComponent} />;
+      break;
     case "image":
-      return <ImagePreview component={component as ImageComponent} />;
+      content = <ImagePreview component={component as ImageComponent} />;
+      break;
     case "link":
-      return <LinkPreview component={component as LinkComponent} />;
+      content = <LinkPreview component={component as LinkComponent} />;
+      break;
     case "code_block":
-      return <CodeBlockPreview component={component as CodeBlockComponent} />;
+      content = <CodeBlockPreview component={component as CodeBlockComponent} />;
+      break;
     case "equation":
-      return <EquationPreview component={component as EquationComponent} />;
+      content = <EquationPreview component={component as EquationComponent} />;
+      break;
     case "citation":
-      return <CitationPreview component={component as CitationComponent} />;
+      content = <CitationPreview component={component as CitationComponent} />;
+      break;
     case "footnote":
-      return <FootnotePreview component={component as FootnoteComponent} />;
+      content = <FootnotePreview component={component as FootnoteComponent} />;
+      break;
     case "horizontal_ruler":
-      return <HorizontalRulerPreview component={component as HorizontalRulerComponent} />;
+      content = <HorizontalRulerPreview component={component as HorizontalRulerComponent} />;
+      break;
     case "list":
-      return <ListPreview component={component as ListComponent} />;
+      content = <ListPreview component={component as ListComponent} />;
+      break;
     case "poll":
-      return <PollPreview component={component as PollComponent} />;
+      content = <PollPreview component={component as PollComponent} />;
+      break;
     case "table":
-      return <TablePreview component={component as TableComponent} />;
+      content = <TablePreview component={component as TableComponent} />;
+      break;
     case "video":
-      return <VideoPreview component={component as VideoComponent} />;
+      content = <VideoPreview component={component as VideoComponent} />;
+      break;
     default:
-      return (
+      content = (
         <div className="preview-unknown">
           <em>Unknown component: {(component as ArticleComponent).type}</em>
         </div>
       );
   }
+  return wrapWithStyle(component, content);
 }
