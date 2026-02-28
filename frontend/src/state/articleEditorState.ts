@@ -138,14 +138,19 @@ export function initializeStateFromUpload(raw: {
   };
 }
 
+export function getEmptyParsed(): ArticleDataParsed {
+  return { metadata: defaultMetadata(), components: [] };
+}
+
 export function buildLoadPayload(raw: {
   url: string;
-  data_parsed: ArticleDataParsed;
+  data_parsed: ArticleDataParsed | null;
 }): NewsArticle {
+  const data_parsed = raw.data_parsed ?? getEmptyParsed();
   return {
     url: raw.url,
-    data_parsed: raw.data_parsed,
-    data_corrected: deepCloneParsed(raw.data_parsed),
+    data_parsed,
+    data_corrected: deepCloneParsed(data_parsed),
   };
 }
 

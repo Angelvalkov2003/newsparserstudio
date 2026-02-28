@@ -1,4 +1,4 @@
-import type { NewsArticle } from "../types";
+import type { ArticleDataCorrected, ArticleDataParsed } from "../types";
 
 const DEFAULT_FILENAME = "article-corrected";
 
@@ -14,21 +14,27 @@ export function filenameFromTitle(title: string): string {
   return slug || DEFAULT_FILENAME;
 }
 
-export function serializeArticleJson(article: NewsArticle): string {
+/** Serializes url + data_parsed (original) + data_corrected (after edits) for Save output. */
+export function serializeSaveJson(
+  url: string,
+  data_parsed: ArticleDataParsed,
+  data_corrected: ArticleDataCorrected
+): string {
   return JSON.stringify(
-    {
-      url: article.url,
-      data_parsed: article.data_parsed,
-      data_corrected: article.data_corrected,
-    },
+    { url, data_parsed, data_corrected },
     null,
     2
   );
 }
 
-export function downloadCorrectedJson(article: NewsArticle): void {
-  const json = serializeArticleJson(article);
-  const baseName = filenameFromTitle(article.data_corrected.metadata.title);
+/** Save: create JSON { url, data_parsed, data_corrected } and trigger download. */
+export function saveAndDownload(
+  url: string,
+  data_parsed: ArticleDataParsed,
+  data_corrected: ArticleDataCorrected
+): void {
+  const json = serializeSaveJson(url, data_parsed, data_corrected);
+  const baseName = filenameFromTitle(data_corrected.metadata.title);
   const filename = `${baseName}.json`;
 
   const blob = new Blob([json], { type: "application/json" });

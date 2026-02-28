@@ -8,7 +8,7 @@ interface PreviewPanelProps {
 }
 
 const MODE_OPTIONS: { value: PreviewMode; label: string }[] = [
-  { value: "original", label: "Original page in iframe" },
+  { value: "original", label: "url" },
   { value: "corrected", label: "data_corrected" },
 ];
 
@@ -62,7 +62,7 @@ export function PreviewPanel({ state, dispatch }: PreviewPanelProps) {
         )}
 
         {activePreviewMode === "corrected" && (
-          <CorrectedPreview data={data_corrected} dispatch={dispatch} />
+          <CorrectedPreview data={data_corrected} readOnly />
         )}
       </div>
     </main>

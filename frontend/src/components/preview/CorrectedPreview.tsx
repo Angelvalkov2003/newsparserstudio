@@ -6,10 +6,11 @@ import { PreviewComponentWrap } from "./PreviewComponentWrap";
 
 interface CorrectedPreviewProps {
   data: ArticleDataCorrected;
-  dispatch: Dispatch<ArticleEditorAction>;
+  dispatch?: Dispatch<ArticleEditorAction>;
+  readOnly?: boolean;
 }
 
-export function CorrectedPreview({ data, dispatch }: CorrectedPreviewProps) {
+export function CorrectedPreview({ data, dispatch, readOnly = false }: CorrectedPreviewProps) {
   const { metadata, components } = data;
 
   return (
@@ -85,6 +86,7 @@ export function CorrectedPreview({ data, dispatch }: CorrectedPreviewProps) {
             total={components.length}
             components={components}
             dispatch={dispatch}
+            readOnly={readOnly}
           />
         ))}
       </div>

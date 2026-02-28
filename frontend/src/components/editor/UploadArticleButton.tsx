@@ -56,13 +56,17 @@ function normalizeComponents(arr: unknown): ArticleComponent[] {
   });
 }
 
-export function parseArticleFile(json: unknown): { url: string; data_parsed: ArticleDataParsed } | null {
+export function parseArticleFile(json: unknown): { url: string; data_parsed: ArticleDataParsed | null } | null {
   if (!json || typeof json !== "object") return null;
   const obj = json as Record<string, unknown>;
 
   const url = typeof obj.url === "string" ? obj.url : "";
   const data_parsedRaw = obj.data_parsed;
-  if (!data_parsedRaw || typeof data_parsedRaw !== "object") return null;
+  if (data_parsedRaw !== undefined && data_parsedRaw !== null && typeof data_parsedRaw !== "object") return null;
+
+  if (data_parsedRaw == null) {
+    return { url: url || "", data_parsed: null };
+  }
 
   const parsed = data_parsedRaw as Record<string, unknown>;
   const metadata = normalizeMetadata(parsed.metadata ?? {});

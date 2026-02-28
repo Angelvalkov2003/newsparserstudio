@@ -11,7 +11,8 @@ interface PreviewComponentWrapProps {
   index: number;
   total: number;
   components: ArticleComponent[];
-  dispatch: Dispatch<ArticleEditorAction>;
+  dispatch?: Dispatch<ArticleEditorAction>;
+  readOnly?: boolean;
 }
 
 export function PreviewComponentWrap({
@@ -20,6 +21,7 @@ export function PreviewComponentWrap({
   total,
   components,
   dispatch,
+  readOnly = false,
 }: PreviewComponentWrapProps) {
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -36,7 +38,7 @@ export function PreviewComponentWrap({
   }, [open]);
 
   const handleDelete = () => {
-    dispatch({ type: "DELETE_COMPONENT", payload: index });
+    dispatch?.({ type: "DELETE_COMPONENT", payload: index });
     setOpen(false);
   };
 
@@ -47,7 +49,7 @@ export function PreviewComponentWrap({
   };
 
   const handleUndo = () => {
-    if (initialComponentRef.current) {
+    if (initialComponentRef.current && dispatch) {
       dispatch({ type: "UPDATE_COMPONENT", payload: { index, component: initialComponentRef.current } });
       initialComponentRef.current = null;
     }
@@ -55,18 +57,26 @@ export function PreviewComponentWrap({
   };
 
   const handleMoveUp = () => {
-    if (index <= 0) return;
+    if (index <= 0 || !dispatch) return;
     const reordered = arrayMove([...components], index, index - 1);
     dispatch({ type: "REORDER_COMPONENTS", payload: reordered });
     setOpen(false);
   };
 
   const handleMoveDown = () => {
-    if (index >= total - 1) return;
+    if (index >= total - 1 || !dispatch) return;
     const reordered = arrayMove([...components], index, index + 1);
     dispatch({ type: "REORDER_COMPONENTS", payload: reordered });
     setOpen(false);
   };
+
+  if (readOnly) {
+    return (
+      <div className="preview-component-wrap">
+        <ComponentPreview component={component} />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -99,7 +109,7 @@ export function PreviewComponentWrap({
           </button>
         </div>
       )}
-      {isEditing && (
+      {isEditing && dispatch && (
         <div className="preview-component-edit-wrap">
           <ComponentEditor
             component={component}

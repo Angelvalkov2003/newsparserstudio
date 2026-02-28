@@ -2,13 +2,13 @@ import { useRef, useState } from "react";
 import type { Dispatch } from "react";
 import type { ArticleEditorAction } from "../state/articleEditorState";
 import { buildLoadPayload } from "../state/articleEditorState";
-import type { NewsArticle } from "../types";
-import { downloadCorrectedJson } from "../utils/downloadCorrectedJson";
+import type { ArticleDataCorrected, ArticleDataParsed } from "../types";
+import { saveAndDownload } from "../utils/downloadCorrectedJson";
 import { parseArticleFile } from "./editor/UploadArticleButton";
 
 interface BottomBarProps {
   dispatch: Dispatch<ArticleEditorAction>;
-  article: NewsArticle;
+  article: { url: string; data_parsed: ArticleDataParsed; data_corrected: ArticleDataCorrected };
 }
 
 export function BottomBar({ dispatch, article }: BottomBarProps) {
@@ -36,7 +36,7 @@ export function BottomBar({ dispatch, article }: BottomBarProps) {
         const json = JSON.parse(text);
         const parsed = parseArticleFile(json);
         if (!parsed) {
-          setLoadError("File must contain url and data_parsed (metadata + components).");
+          setLoadError("File must contain url and valid data_parsed (object or null).");
           return;
         }
         setLoadError("");
@@ -49,11 +49,7 @@ export function BottomBar({ dispatch, article }: BottomBarProps) {
   };
 
   const handleSave = () => {
-    // Save = data_corrected is already up to date in state; no file download.
-  };
-
-  const handleDownload = () => {
-    downloadCorrectedJson(article);
+    saveAndDownload(url, data_parsed, data_corrected);
   };
 
   return (
@@ -71,9 +67,6 @@ export function BottomBar({ dispatch, article }: BottomBarProps) {
       </button>
       <button type="button" className="app-bottom-bar-btn" onClick={handleSave}>
         Save
-      </button>
-      <button type="button" className="app-bottom-bar-btn" onClick={handleDownload}>
-        Download
       </button>
       {loadError && (
         <span className="app-bottom-bar-error" role="alert">
