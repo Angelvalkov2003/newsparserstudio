@@ -7,17 +7,27 @@ import type {
   NewsArticle,
 } from "../types";
 
+export interface LoadArticlePayload {
+  url: string;
+  data_parsed: ArticleDataParsed;
+  /** What was in file as data_corrected (for right panel). If null in file, pass empty. */
+  data_corrected_loaded: ArticleDataCorrected;
+}
+
 export type PreviewMode = "original" | "corrected";
 
 export interface ArticleEditorState {
   url: string;
   data_parsed: ArticleDataParsed;
+  /** Editable copy for left panel; always initialized from data_parsed on load. */
   data_corrected: ArticleDataCorrected;
+  /** data_corrected from file for right panel only; if file had null, empty. */
+  data_corrected_loaded: ArticleDataCorrected;
   activePreviewMode: PreviewMode;
 }
 
 export type ArticleEditorAction =
-  | { type: "LOAD_ARTICLE"; payload: NewsArticle }
+  | { type: "LOAD_ARTICLE"; payload: LoadArticlePayload }
   | { type: "UPDATE_METADATA"; payload: ArticleMetadata }
   | { type: "REORDER_COMPONENTS"; payload: ArticleComponent[] }
   | { type: "UPDATE_COMPONENT"; payload: { index: number; component: ArticleComponent } }
@@ -35,11 +45,12 @@ export function articleEditorReducer(
 ): ArticleEditorState {
   switch (action.type) {
     case "LOAD_ARTICLE": {
-      const { url, data_parsed, data_corrected } = action.payload;
+      const { url, data_parsed, data_corrected_loaded } = action.payload;
       return {
         url,
         data_parsed,
-        data_corrected,
+        data_corrected: deepCloneParsed(data_parsed),
+        data_corrected_loaded,
         activePreviewMode: "corrected",
       };
     }
@@ -109,10 +120,13 @@ export function articleEditorReducer(
   }
 }
 
+const emptyData = () => ({ metadata: defaultMetadata(), components: [] });
+
 const initialState: ArticleEditorState = {
   url: "",
-  data_parsed: { metadata: defaultMetadata(), components: [] },
-  data_corrected: { metadata: defaultMetadata(), components: [] },
+  data_parsed: emptyData(),
+  data_corrected: emptyData(),
+  data_corrected_loaded: emptyData(),
   activePreviewMode: "corrected",
 };
 
@@ -128,12 +142,14 @@ function defaultMetadata(): ArticleMetadata {
 export function initializeStateFromUpload(raw: {
   url: string;
   data_parsed: ArticleDataParsed;
+  data_corrected_loaded?: ArticleDataCorrected;
 }): ArticleEditorState {
-  const data_corrected = deepCloneParsed(raw.data_parsed);
+  const data_corrected_loaded = raw.data_corrected_loaded ?? deepCloneParsed(getEmptyParsed());
   return {
     url: raw.url,
     data_parsed: raw.data_parsed,
-    data_corrected,
+    data_corrected: deepCloneParsed(raw.data_parsed),
+    data_corrected_loaded,
     activePreviewMode: "corrected",
   };
 }
@@ -142,15 +158,19 @@ export function getEmptyParsed(): ArticleDataParsed {
   return { metadata: defaultMetadata(), components: [] };
 }
 
+/** Builds payload for LOAD_ARTICLE: left = data_parsed, right = data_corrected from file (or empty). */
 export function buildLoadPayload(raw: {
   url: string;
   data_parsed: ArticleDataParsed | null;
-}): NewsArticle {
+  data_corrected?: ArticleDataCorrected | null;
+}): LoadArticlePayload {
   const data_parsed = raw.data_parsed ?? getEmptyParsed();
+  const data_corrected_loaded =
+    raw.data_corrected != null ? deepCloneParsed(raw.data_corrected) : deepCloneParsed(getEmptyParsed());
   return {
     url: raw.url,
     data_parsed,
-    data_corrected: deepCloneParsed(data_parsed),
+    data_corrected_loaded,
   };
 }
 

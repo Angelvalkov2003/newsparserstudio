@@ -13,7 +13,7 @@ const MODE_OPTIONS: { value: PreviewMode; label: string }[] = [
 ];
 
 export function PreviewPanel({ state, dispatch }: PreviewPanelProps) {
-  const { url, data_corrected, activePreviewMode } = state;
+  const { url, data_corrected_loaded, activePreviewMode } = state;
 
   const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value as PreviewMode;
@@ -62,7 +62,7 @@ export function PreviewPanel({ state, dispatch }: PreviewPanelProps) {
         )}
 
         {activePreviewMode === "corrected" && (
-          <CorrectedPreview data={data_corrected} readOnly />
+          <CorrectedPreview data={data_corrected_loaded} readOnly />
         )}
       </div>
     </main>

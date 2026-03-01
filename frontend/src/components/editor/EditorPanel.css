@@ -299,6 +299,30 @@
   cursor: grabbing;
 }
 
+.component-arrow-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--editor-muted, #a6adc8);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.component-arrow-btn:hover:not(:disabled) {
+  color: var(--editor-fg, #cdd6f4);
+  background: var(--editor-border, #45475a);
+}
+
+.component-arrow-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .component-list-item-editor-wrap {
   margin-top: 0.75rem;
   padding-top: 0.75rem;

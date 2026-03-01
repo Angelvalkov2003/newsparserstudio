@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import type { Dispatch } from "react";
 import type { ArticleEditorAction } from "../../state/articleEditorState";
-import type { ArticleDataParsed, ArticleMetadata, ArticleComponent, MetadataItem } from "../../types";
+import type { ArticleDataParsed, ArticleDataCorrected, ArticleMetadata, ArticleComponent, MetadataItem } from "../../types";
 import { buildLoadPayload } from "../../state/articleEditorState";
 
 interface UploadArticleButtonProps {
@@ -56,7 +56,21 @@ function normalizeComponents(arr: unknown): ArticleComponent[] {
   });
 }
 
-export function parseArticleFile(json: unknown): { url: string; data_parsed: ArticleDataParsed | null } | null {
+function parseDataParsedLike(raw: unknown): { metadata: ArticleMetadata; components: ArticleComponent[] } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const parsed = raw as Record<string, unknown>;
+  const metadata = normalizeMetadata(parsed.metadata ?? {});
+  const rawList = parsed.components ?? (parsed as { components?: { components?: unknown[] } }).components;
+  const list = Array.isArray(rawList) ? rawList : (rawList && typeof rawList === "object" && "components" in rawList && Array.isArray((rawList as { components: unknown[] }).components) ? (rawList as { components: unknown[] }).components : []);
+  const components = normalizeComponents(list);
+  return { metadata, components };
+}
+
+export function parseArticleFile(json: unknown): {
+  url: string;
+  data_parsed: ArticleDataParsed | null;
+  data_corrected: ArticleDataCorrected | null;
+} | null {
   if (!json || typeof json !== "object") return null;
   const obj = json as Record<string, unknown>;
 
@@ -64,19 +78,16 @@ export function parseArticleFile(json: unknown): { url: string; data_parsed: Art
   const data_parsedRaw = obj.data_parsed;
   if (data_parsedRaw !== undefined && data_parsedRaw !== null && typeof data_parsedRaw !== "object") return null;
 
-  if (data_parsedRaw == null) {
-    return { url: url || "", data_parsed: null };
-  }
-
-  const parsed = data_parsedRaw as Record<string, unknown>;
-  const metadata = normalizeMetadata(parsed.metadata ?? {});
-  const rawList = parsed.components ?? (parsed as { components?: { components?: unknown[] } }).components;
-  const list = Array.isArray(rawList) ? rawList : (rawList && typeof rawList === "object" && "components" in rawList && Array.isArray((rawList as { components: unknown[] }).components) ? (rawList as { components: unknown[] }).components : []);
-  const components = normalizeComponents(list);
+  const data_parsed = data_parsedRaw == null ? null : parseDataParsedLike(data_parsedRaw);
+  const data_correctedRaw = obj.data_corrected;
+  const data_corrected = data_correctedRaw == null || typeof data_correctedRaw !== "object"
+    ? null
+    : parseDataParsedLike(data_correctedRaw);
 
   return {
-    url: url || "https://example.com/article",
-    data_parsed: { metadata, components },
+    url: url || (data_parsed ? "https://example.com/article" : ""),
+    data_parsed: data_parsed as ArticleDataParsed | null,
+    data_corrected: data_corrected as ArticleDataCorrected | null,
   };
 }
 

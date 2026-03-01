@@ -109,6 +109,26 @@ export function SortableComponentItem({
           </span>
           <button
             type="button"
+            className="component-arrow-btn"
+            onClick={handleMoveUp}
+            disabled={index <= 0}
+            title="Move up"
+            aria-label="Move up"
+          >
+            <ArrowUpIcon />
+          </button>
+          <button
+            type="button"
+            className="component-arrow-btn"
+            onClick={handleMoveDown}
+            disabled={index >= total - 1}
+            title="Move down"
+            aria-label="Move down"
+          >
+            <ArrowDownIcon />
+          </button>
+          <button
+            type="button"
             className="component-menu-trigger"
             onClick={() => setMenuOpen((o) => !o)}
             aria-label="Open menu"
@@ -118,12 +138,6 @@ export function SortableComponentItem({
           </button>
           {menuOpen && (
             <div className="component-list-item-menu" role="menu">
-              <button type="button" className="component-list-menu-btn" onClick={handleMoveUp} disabled={index <= 0} role="menuitem">
-                Move up
-              </button>
-              <button type="button" className="component-list-menu-btn" onClick={handleMoveDown} disabled={index >= total - 1} role="menuitem">
-                Move down
-              </button>
               <button type="button" className="component-list-menu-btn" onClick={handleEdit} role="menuitem">
                 Edit style & text
               </button>
@@ -175,6 +189,22 @@ function DragHandleIcon() {
       <circle cx="2" cy="10" r="1" fill="currentColor" />
       <circle cx="6" cy="10" r="1" fill="currentColor" />
       <circle cx="10" cy="10" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ArrowUpIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  );
+}
+
+function ArrowDownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">
+      <path d="M12 5v14M5 12l7 7 7-7" />
     </svg>
   );
 }
