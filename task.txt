@@ -1,7 +1,18 @@
-Дясно винагио се loadва correct_data , а ако е null нищпо не се лоадва, а в ляво винаги се лоадва data_parsed
+sqlite baza
 
-Ако data_parsed е празен се зарежда празен в дясно
 
-ОТдясно не се поаказва нищо ако няма data_corect и като променяме в ляво пак не се поакзва дясно
+"website name", website url
+pages:
+[
+    page name, page url, 
+    parsed:
+    [
+        name?
+        data
+        info
+        is_verified},
+        {}
+    ]
 
-move up i move down отвън стрелки
+    
+],[]
