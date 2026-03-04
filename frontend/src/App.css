@@ -11,6 +11,18 @@
   width: 100%;
 }
 
+.app-layout--in-router {
+  flex-wrap: nowrap;
+  flex-direction: column;
+}
+
+.app-editor-row {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  width: 100%;
+}
+
 .app-left {
   flex: 0 0 50%;
   width: 50%;
@@ -24,6 +36,10 @@
   z-index: 1;
 }
 
+.app-layout--in-router .app-left {
+  height: 100%;
+}
+
 .app-right {
   flex: 1 1 0;
   min-width: 0;
@@ -32,6 +48,10 @@
   display: flex;
   flex-direction: column;
   background: var(--preview-bg, #ffffff);
+}
+
+.app-layout--in-router .app-right {
+  height: 100%;
 }
 
 .app-bottom-bar {
@@ -45,6 +65,10 @@
   background: var(--editor-toolbar-bg);
   border-top: 1px solid var(--editor-border);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.app-layout--in-router .app-bottom-bar {
+  flex: 0 0 auto;
 }
 
 .app-bottom-bar-input {

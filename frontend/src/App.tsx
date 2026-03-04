@@ -1,31 +1,23 @@
-import { useArticleEditor } from './state/articleEditorState'
-import { EditorPanel } from './components/editor'
-import { PreviewPanel } from './components/preview'
-import { BottomBar } from './components/BottomBar'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { Layout } from './components/Layout'
+import { EditorPage } from './pages/EditorPage'
+import { AddSite } from './pages/AddSite'
+import { AddPage } from './pages/AddPage'
+import { AddParsed } from './pages/AddParsed'
 import './App.css'
-import './components/editor/EditorPanel.css'
-import './components/preview/PreviewPanel.css'
 
 function App() {
-  const [state, dispatch] = useArticleEditor()
-
   return (
-    <div className="app-layout">
-      <aside className="app-left">
-        <EditorPanel state={state} dispatch={dispatch} />
-      </aside>
-      <main className="app-right">
-        <PreviewPanel state={state} dispatch={dispatch} />
-      </main>
-      <BottomBar
-        dispatch={dispatch}
-        article={{
-          url: state.url,
-          data_parsed: state.data_parsed,
-          data_corrected: state.data_corrected,
-        }}
-      />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<EditorPage />} />
+          <Route path="sites" element={<AddSite />} />
+          <Route path="pages" element={<AddPage />} />
+          <Route path="parsed" element={<AddParsed />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
