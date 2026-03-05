@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useArticleEditor } from '../state/articleEditorState'
 import { buildLoadPayload, getEmptyParsed } from '../state/articleEditorState'
@@ -34,6 +34,38 @@ export function EditorPage() {
   const [verifying, setVerifying] = useState(false)
   const [saving, setSaving] = useState(false)
   const [barError, setBarError] = useState<string | null>(null)
+  const [leftPercent, setLeftPercent] = useState(50)
+  const [dragging, setDragging] = useState(false)
+  const editorRowRef = useRef<HTMLDivElement>(null)
+
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!editorRowRef.current) return
+      const rect = editorRowRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const pct = Math.round((x / rect.width) * 100)
+      setLeftPercent(Math.min(85, Math.max(15, pct)))
+    },
+    []
+  )
+
+  const handleResizeEnd = useCallback(() => {
+    setDragging(false)
+  }, [])
+
+  useEffect(() => {
+    if (!dragging) return
+    document.addEventListener('mousemove', handleResizeMove)
+    document.addEventListener('mouseup', handleResizeEnd)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove)
+      document.removeEventListener('mouseup', handleResizeEnd)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [dragging, handleResizeMove, handleResizeEnd])
 
   // Fetch page and parsed when pageId is set
   useEffect(() => {
@@ -206,8 +238,11 @@ export function EditorPage() {
 
   return (
     <div className="app-layout app-layout--in-router" style={{ height: '100%' }}>
-      <div className="app-editor-row">
-        <aside className="app-left">
+      <div className="app-editor-row" ref={editorRowRef}>
+        <aside
+          className="app-left"
+          style={{ flex: `0 0 ${leftPercent}%`, width: `${leftPercent}%`, minWidth: 280, maxWidth: '85%' }}
+        >
           <EditorPanel
             state={state}
             dispatch={dispatch}
@@ -229,6 +264,13 @@ export function EditorPage() {
             onDownloadCurrentParsed={handleDownloadCurrentParsed}
           />
         </aside>
+        <div
+          className="app-editor-resizer"
+          onMouseDown={(e) => { e.preventDefault(); setDragging(true) }}
+          role="separator"
+          aria-orientation="vertical"
+          aria-valuenow={leftPercent}
+        />
         <main className="app-right">
           <PreviewPanel
             state={state}

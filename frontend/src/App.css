@@ -24,16 +24,30 @@
 }
 
 .app-left {
-  flex: 0 0 50%;
-  width: 50%;
   min-width: 280px;
-  max-width: 720px;
   height: calc(100vh - 52px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
   z-index: 1;
+}
+
+.app-editor-resizer {
+  flex: 0 0 6px;
+  width: 6px;
+  cursor: col-resize;
+  background: var(--editor-border, #313244);
+  transition: background 0.15s;
+  z-index: 2;
+}
+
+.app-editor-resizer:hover {
+  background: var(--editor-accent, #89b4fa);
+}
+
+.app-editor-resizer:active {
+  background: var(--editor-accent, #89b4fa);
 }
 
 .app-layout--in-router .app-left {
