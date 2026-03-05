@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { fetchSites, createSite, type Site as SiteType } from '../api'
+import { fetchSites, createSite, getSite, updateSite, deleteSite, type Site as SiteType } from '../api'
+import { refreshSidebar } from '../utils/sidebarRefresh'
 
 export function AddSite() {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [list, setList] = useState<SiteType[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -15,7 +17,7 @@ export function AddSite() {
       const data = await fetchSites()
       setList(data)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Грешка при зареждане')
+      setError(e instanceof Error ? e.message : 'Error loading data')
     } finally {
       setLoading(false)
     }
@@ -25,35 +27,73 @@ export function AddSite() {
     load()
   }, [])
 
+  const resetForm = () => {
+    setName('')
+    setUrl('')
+    setEditingId(null)
+    setError(null)
+  }
+
+  const handleEdit = async (id: number) => {
+    try {
+      const site = await getSite(id)
+      setName(site.name)
+      setUrl(site.url)
+      setEditingId(id)
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error loading site')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
-      await createSite(name.trim(), url.trim())
-      setName('')
-      setUrl('')
+      if (editingId != null) {
+        await updateSite(editingId, name.trim(), url.trim())
+        resetForm()
+      } else {
+        await createSite(name.trim(), url.trim())
+        setName('')
+        setUrl('')
+      }
       load()
+        refreshSidebar()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Грешка при запис')
+      setError(e instanceof Error ? e.message : 'Error saving')
     } finally {
       setSubmitting(false)
     }
   }
 
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Delete this site? All related pages and parsed data will be affected.')) return
+    setError(null)
+    try {
+      await deleteSite(id)
+      if (editingId === id) resetForm()
+      load()
+      refreshSidebar()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error deleting')
+    }
+  }
+
   return (
     <div className="form-page">
-      <h1>Добавяне на сайт</h1>
+      <h1>{editingId != null ? 'Edit site' : 'Add site'}</h1>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="site-name">Име</label>
+          <label htmlFor="site-name">Name</label>
           <input
             id="site-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            placeholder="Име на сайта"
+            placeholder="Site name"
           />
         </div>
         <div className="form-group">
@@ -70,24 +110,39 @@ export function AddSite() {
         {error && <p className="form-error">{error}</p>}
         <div className="form-actions">
           <button type="submit" className="primary" disabled={submitting}>
-            {submitting ? 'Записване…' : 'Добави сайт'}
+            {submitting ? 'Saving…' : editingId != null ? 'Update site' : 'Add site'}
           </button>
+          {editingId != null && (
+            <button type="button" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
         </div>
       </form>
 
       <section className="list-section">
-        <h2>Съществуващи сайтове</h2>
+        <h2>Existing sites</h2>
         {loading ? (
-          <p>Зареждане…</p>
+          <p>Loading…</p>
         ) : list.length === 0 ? (
-          <p>Няма добавени сайтове.</p>
+          <p>No sites yet.</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {list.map((s) => (
-              <li key={s.id} className="list-item">
-                <strong>{s.name}</strong>
-                <br />
-                <small>{s.url}</small>
+              <li key={s.id} className="list-item list-item--crud">
+                <div>
+                  <strong>{s.name}</strong>
+                  <br />
+                  <small>{s.url}</small>
+                </div>
+                <div className="list-item-actions">
+                  <button type="button" onClick={() => handleEdit(s.id)}>
+                    Edit
+                  </button>
+                  <button type="button" className="danger" onClick={() => handleDelete(s.id)}>
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

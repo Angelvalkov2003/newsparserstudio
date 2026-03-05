@@ -56,7 +56,8 @@ function normalizeComponents(arr: unknown): ArticleComponent[] {
   });
 }
 
-function parseDataParsedLike(raw: unknown): { metadata: ArticleMetadata; components: ArticleComponent[] } | null {
+/** Parse a data_parsed-like object (metadata + components). Used by upload and by editor when loading from parsed records. */
+export function parseDataParsedLike(raw: unknown): { metadata: ArticleMetadata; components: ArticleComponent[] } | null {
   if (!raw || typeof raw !== "object") return null;
   const parsed = raw as Record<string, unknown>;
   const metadata = normalizeMetadata(parsed.metadata ?? {});
@@ -66,11 +67,17 @@ function parseDataParsedLike(raw: unknown): { metadata: ArticleMetadata; compone
   return { metadata, components };
 }
 
-export function parseArticleFile(json: unknown): {
+export interface ParseArticleFileResult {
   url: string;
   data_parsed: ArticleDataParsed | null;
   data_corrected: ArticleDataCorrected | null;
-} | null {
+  /** From file meta (for saving to DB on load) */
+  is_verified?: boolean;
+  name?: string | null;
+  info?: string | null;
+}
+
+export function parseArticleFile(json: unknown): ParseArticleFileResult | null {
   if (!json || typeof json !== "object") return null;
   const obj = json as Record<string, unknown>;
 
@@ -84,10 +91,17 @@ export function parseArticleFile(json: unknown): {
     ? null
     : parseDataParsedLike(data_correctedRaw);
 
+  const is_verified = typeof obj.is_verified === "boolean" ? obj.is_verified : undefined;
+  const name = obj.name !== undefined ? (typeof obj.name === "string" ? obj.name : null) : undefined;
+  const info = obj.info !== undefined ? (typeof obj.info === "string" ? obj.info : null) : undefined;
+
   return {
     url: url || (data_parsed ? "https://example.com/article" : ""),
     data_parsed: data_parsed as ArticleDataParsed | null,
     data_corrected: data_corrected as ArticleDataCorrected | null,
+    ...(is_verified !== undefined && { is_verified }),
+    ...(name !== undefined && { name }),
+    ...(info !== undefined && { info }),
   };
 }
 

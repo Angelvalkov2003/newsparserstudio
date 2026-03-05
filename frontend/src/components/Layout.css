@@ -13,18 +13,38 @@
   height: 100%;
 }
 
-.layout-nav {
+.layout-header {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.75rem 1rem;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.25rem;
   background: var(--editor-toolbar-bg);
   border-bottom: 1px solid var(--editor-border);
   flex-shrink: 0;
 }
 
+.layout-brand {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--editor-fg);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+  margin-right: 0.25rem;
+}
+
+.layout-brand:hover {
+  color: var(--editor-accent);
+}
+
+.layout-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
 .layout-nav a {
   padding: 0.5rem 1rem;
   border-radius: 8px;
+  font-size: 0.9375rem;
   font-weight: 500;
   color: var(--editor-fg);
   text-decoration: none;
@@ -156,6 +176,58 @@
   border: 1px solid var(--editor-border);
   border-radius: 8px;
   margin-bottom: 0.5rem;
+}
+
+.list-item--crud {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.list-item--crud > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.list-item-actions button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  background: var(--editor-input-bg);
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  color: var(--editor-fg);
+  cursor: pointer;
+}
+
+.list-item-actions button:hover {
+  background: var(--editor-border);
+}
+
+.list-item-actions button.danger {
+  color: var(--editor-error, #e11d48);
+  border-color: rgba(225, 29, 72, 0.4);
+}
+
+.list-item-actions button.danger:hover {
+  background: rgba(225, 29, 72, 0.1);
+}
+
+.form-actions button.danger {
+  color: var(--editor-error, #e11d48);
+  border-color: rgba(225, 29, 72, 0.4);
+}
+
+.form-actions button.danger:hover {
+  background: rgba(225, 29, 72, 0.1);
 }
 
 .list-item small {

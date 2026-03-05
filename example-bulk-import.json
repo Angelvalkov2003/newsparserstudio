@@ -1,0 +1,96 @@
+{
+  "sites": [
+    {
+      "name": "Example News Site",
+      "url": "https://example.com",
+      "pages": [
+        {
+          "title": "Sample Article One",
+          "url": "https://example.com/article-1",
+          "parsed": [
+            {
+              "name": "Draft v1",
+              "data": {
+                "metadata": {
+                  "title": "Sample Article One",
+                  "document_date": "2025-03-01T12:00:00Z",
+                  "authors": [{ "name": "John Doe", "url": null }],
+                  "categories": [{ "name": "News", "url": null }],
+                  "tags": [{ "name": "sample" }, { "name": "example" }]
+                },
+                "components": [
+                  {
+                    "id": "heading-1",
+                    "type": "heading",
+                    "text": "Introduction",
+                    "level": 1
+                  },
+                  {
+                    "id": "para-1",
+                    "type": "paragraph",
+                    "text": "This is a sample article for bulk import."
+                  }
+                ]
+              },
+              "info": "Unverified draft",
+              "is_verified": false
+            },
+            {
+              "name": "Verified reference",
+              "data": {
+                "metadata": {
+                  "title": "Sample Article One",
+                  "document_date": "2025-03-01T12:00:00Z",
+                  "authors": [{ "name": "John Doe", "url": null }],
+                  "categories": [{ "name": "News", "url": null }],
+                  "tags": [{ "name": "sample" }, { "name": "example" }]
+                },
+                "components": [
+                  {
+                    "id": "heading-1",
+                    "type": "heading",
+                    "text": "Introduction",
+                    "level": 1
+                  },
+                  {
+                    "id": "para-1",
+                    "type": "paragraph",
+                    "text": "This is the verified reference version."
+                  }
+                ]
+              },
+              "info": "Reference data",
+              "is_verified": true
+            }
+          ]
+        },
+        {
+          "title": "Sample Article Two",
+          "url": "https://example.com/article-2",
+          "parsed": [
+            {
+              "name": null,
+              "data": {
+                "metadata": {
+                  "title": "Article Two",
+                  "authors": [],
+                  "categories": [],
+                  "tags": []
+                },
+                "components": [
+                  {
+                    "id": "para-1",
+                    "type": "paragraph",
+                    "text": "Second article content."
+                  }
+                ]
+              },
+              "info": null,
+              "is_verified": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

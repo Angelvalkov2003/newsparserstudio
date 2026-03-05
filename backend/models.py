@@ -29,7 +29,9 @@ class Site(Base):
         DateTime(timezone=False), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    pages: Mapped[list["Page"]] = relationship("Page", back_populates="site")
+    pages: Mapped[list["Page"]] = relationship(
+        "Page", back_populates="site", cascade="all, delete-orphan"
+    )
 
 
 class Page(Base):
@@ -47,7 +49,9 @@ class Page(Base):
     )
 
     site: Mapped["Site"] = relationship("Site", back_populates="pages")
-    parsed_records: Mapped[list["Parsed"]] = relationship("Parsed", back_populates="page")
+    parsed_records: Mapped[list["Parsed"]] = relationship(
+        "Parsed", back_populates="page", cascade="all, delete-orphan"
+    )
 
 
 class Parsed(Base):

@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import {
   fetchSites,
   fetchPages,
   fetchParsed,
+  getPage,
   type Site,
   type PageWithSite,
   type ParsedWithPage,
@@ -15,7 +17,12 @@ function matchSearch(text: string, q: string): boolean {
   return lower.includes(q.trim().toLowerCase())
 }
 
+import { REFRESH_SIDEBAR_EVENT } from '../utils/sidebarRefresh'
+
 export function SitesSidebar() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [sites, setSites] = useState<Site[]>([])
   const [search, setSearch] = useState('')
   const [expandedSiteId, setExpandedSiteId] = useState<number | null>(null)
@@ -26,13 +33,58 @@ export function SitesSidebar() {
   const [loadingPages, setLoadingPages] = useState<number | null>(null)
   const [loadingParsed, setLoadingParsed] = useState<number | null>(null)
 
+  // Sync from URL: when pageId is in URL, expand site and select page, load pages + parsed
   useEffect(() => {
+    const pageIdParam = searchParams.get('pageId')
+    if (!pageIdParam) return
+    const numId = Number(pageIdParam)
+    if (!numId) return
     let cancelled = false
+    getPage(numId)
+      .then((page) => {
+        if (cancelled) return
+        setExpandedSiteId(page.site_id)
+        setSelectedPageId(page.id)
+        return Promise.all([
+          fetchPages(page.site_id),
+          fetchParsed(page.id),
+        ]).then(([pages, parsed]) => {
+          if (cancelled) return
+          setPagesBySite((prev) => ({ ...prev, [page.site_id]: pages ?? [] }))
+          setParsedByPage((prev) => ({ ...prev, [page.id]: parsed ?? [] }))
+        })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [searchParams])
+
+  function refreshSites(
+    setSites: (s: Site[] | ((prev: Site[]) => Site[])) => void,
+    setPagesBySite: (p: Record<number, PageWithSite[]> | ((prev: Record<number, PageWithSite[]>) => Record<number, PageWithSite[]>)) => void,
+    setParsedByPage: (p: Record<number, ParsedWithPage[]> | ((prev: Record<number, ParsedWithPage[]>) => Record<number, ParsedWithPage[]>)) => void,
+    setLoading: (l: boolean) => void
+  ) {
     setLoading(true)
     fetchSites()
-      .then((data) => { if (!cancelled) setSites(data) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+      .then((data) => {
+        setSites(data)
+        setPagesBySite({})
+        setParsedByPage({})
+      })
+      .finally(() => setLoading(false))
+  }
+
+  // Refetch sites (and clear pages/parsed cache) when route changes or when data-changed event fires
+  useEffect(() => {
+    refreshSites(setSites, setPagesBySite, setParsedByPage, setLoading)
+  }, [location.pathname])
+
+  useEffect(() => {
+    const handler = () => {
+      refreshSites(setSites, setPagesBySite, setParsedByPage, setLoading)
+    }
+    window.addEventListener(REFRESH_SIDEBAR_EVENT, handler)
+    return () => window.removeEventListener(REFRESH_SIDEBAR_EVENT, handler)
   }, [])
 
   const filteredSites = useMemo(() => {
@@ -84,10 +136,17 @@ export function SitesSidebar() {
   const toggleSite = (id: number) => {
     setExpandedSiteId((prev) => (prev === id ? null : id))
     setSelectedPageId(null)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('pageId')
+      return next
+    })
   }
 
   const selectPage = (id: number) => {
     setSelectedPageId((prev) => (prev === id ? null : id))
+    // Navigate to Editor so the dropdown and editor are visible
+    navigate(`/?pageId=${id}`)
   }
 
   return (
@@ -95,7 +154,7 @@ export function SitesSidebar() {
       <div className="sites-sidebar-search">
         <input
           type="search"
-          placeholder="Търсене (сайт / страница)..."
+          placeholder="Search (site / page)..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="sites-sidebar-input"
@@ -103,9 +162,9 @@ export function SitesSidebar() {
       </div>
       <div className="sites-sidebar-list">
         {loading ? (
-          <p className="sites-sidebar-muted">Зареждане...</p>
+          <p className="sites-sidebar-muted">Loading...</p>
         ) : filteredSites.length === 0 ? (
-          <p className="sites-sidebar-muted">Няма сайтове</p>
+          <p className="sites-sidebar-muted">No sites</p>
         ) : (
           <ul className="sites-sidebar-sites">
             {filteredSites.map((site) => {
@@ -125,9 +184,9 @@ export function SitesSidebar() {
                   {isExpanded && (
                     <ul className="sites-sidebar-pages">
                       {isLoadingPages ? (
-                        <li className="sites-sidebar-muted">Зареждане...</li>
+                        <li className="sites-sidebar-muted">Loading...</li>
                       ) : sitePages.length === 0 ? (
-                        <li className="sites-sidebar-muted">Няма страници</li>
+                        <li className="sites-sidebar-muted">No pages</li>
                       ) : (
                         sitePages.map((page) => {
                           const isSelected = selectedPageId === page.id
@@ -143,9 +202,9 @@ export function SitesSidebar() {
                               {isSelected && (
                                 <ul className="sites-sidebar-parsed">
                                   {loadingParsed === page.id ? (
-                                    <li className="sites-sidebar-muted">Зареждане...</li>
+                                    <li className="sites-sidebar-muted">Loading...</li>
                                   ) : parsedList.length === 0 ? (
-                                    <li className="sites-sidebar-muted">Няма parsed</li>
+                                    <li className="sites-sidebar-muted">No parsed</li>
                                   ) : (
                                     parsedList.map((r) => (
                                       <li key={r.id} className="sites-sidebar-parsed-item">

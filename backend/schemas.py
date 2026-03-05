@@ -21,6 +21,10 @@ class SiteCreate(SiteBase):
     pass
 
 
+class SiteUpdate(SiteBase):
+    pass
+
+
 class SiteOut(SiteBase):
     id: int
     created_at: datetime | str
@@ -40,6 +44,10 @@ class PageBase(BaseModel):
 
 
 class PageCreate(PageBase):
+    pass
+
+
+class PageUpdate(PageBase):
     pass
 
 
@@ -71,6 +79,10 @@ class ParsedCreate(ParsedBase):
     pass
 
 
+class ParsedUpdate(ParsedBase):
+    pass
+
+
 class ParsedOut(ParsedBase):
     id: int
     created_at: datetime | str
@@ -85,3 +97,37 @@ class ParsedOut(ParsedBase):
 class ParsedOutWithPage(ParsedOut):
     page_title: str | None = None
     page_url: str | None = None
+
+
+# --- Bulk import (nested) ---
+class ParsedBulkItem(BaseModel):
+    name: str | None = None
+    data: str | dict  # JSON string or object (stored as string)
+    info: str | None = None
+    is_verified: bool = False
+
+
+class PageBulkItem(BaseModel):
+    title: str | None = None
+    url: str
+    parsed: list[ParsedBulkItem] = []
+
+
+class SiteBulkItem(BaseModel):
+    name: str
+    url: str
+    pages: list[PageBulkItem] = []
+
+
+class ImportBulkBody(BaseModel):
+    sites: list[SiteBulkItem] = []
+
+
+class ImportBulkResult(BaseModel):
+    sites_created: int = 0
+    sites_matched: int = 0
+    pages_created: int = 0
+    pages_matched: int = 0
+    parsed_created: int = 0
+    parsed_updated: int = 0
+    errors: list[str] = []

@@ -10,20 +10,28 @@ export function Layout() {
     <div className="layout">
       <SitesSidebar />
       <div className="layout-body">
-        <nav className="layout-nav">
-          <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
-            Редактор
+        <header className="layout-header">
+          <NavLink to="/" className="layout-brand" end>
+            NewsParserStudio
           </NavLink>
-          <NavLink to="/sites" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Сайтове
-          </NavLink>
-          <NavLink to="/pages" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Страници (статии)
-          </NavLink>
-          <NavLink to="/parsed" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Parsed (JSON)
-          </NavLink>
-        </nav>
+          <nav className="layout-nav">
+            <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
+              Editor
+            </NavLink>
+            <NavLink to="/sites" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Sites
+            </NavLink>
+            <NavLink to="/pages" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Pages
+            </NavLink>
+            <NavLink to="/parsed" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Parsed
+            </NavLink>
+            <NavLink to="/import-bulk" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Import bulk
+            </NavLink>
+          </nav>
+        </header>
         <main className={`layout-main ${isEditor ? 'layout-main--editor' : ''}`}>
           <Outlet />
         </main>

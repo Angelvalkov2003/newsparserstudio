@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
-import { fetchSites, fetchPages, createPage, type Site, type PageWithSite } from '../api'
+import {
+  fetchSites,
+  fetchPages,
+  getPage,
+  createPage,
+  updatePage,
+  deletePage,
+  type Site,
+  type PageWithSite,
+} from '../api'
+import { refreshSidebar } from '../utils/sidebarRefresh'
 
 export function AddPage() {
   const [sites, setSites] = useState<Site[]>([])
@@ -7,6 +17,7 @@ export function AddPage() {
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
   const [siteId, setSiteId] = useState<number | ''>('')
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,9 +28,9 @@ export function AddPage() {
       const [sitesData, pagesData] = await Promise.all([fetchSites(), fetchPages()])
       setSites(sitesData)
       setList(pagesData)
-      if (sitesData.length && siteId === '') setSiteId(sitesData[0].id)
+      if (sitesData.length && siteId === '' && editingId == null) setSiteId(sitesData[0].id)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Грешка при зареждане')
+      setError(e instanceof Error ? e.message : 'Error loading data')
     } finally {
       setLoading(false)
     }
@@ -29,39 +40,79 @@ export function AddPage() {
     load()
   }, [])
 
+  const resetForm = () => {
+    setTitle('')
+    setUrl('')
+    setSiteId(sites.length ? sites[0].id : '')
+    setEditingId(null)
+    setError(null)
+  }
+
+  const handleEdit = async (id: number) => {
+    try {
+      const page = await getPage(id)
+      setTitle(page.title ?? '')
+      setUrl(page.url)
+      setSiteId(page.site_id)
+      setEditingId(id)
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error loading page')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (siteId === '') {
-      setError('Изберете сайт')
+      setError('Select a site')
       return
     }
     setError(null)
     setSubmitting(true)
     try {
-      await createPage(title.trim() || null, url.trim(), Number(siteId))
-      setTitle('')
-      setUrl('')
+      if (editingId != null) {
+        await updatePage(editingId, title.trim() || null, url.trim(), Number(siteId))
+        resetForm()
+      } else {
+        await createPage(title.trim() || null, url.trim(), Number(siteId))
+        setTitle('')
+        setUrl('')
+      }
       load()
+      refreshSidebar()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Грешка при запис')
+      setError(e instanceof Error ? e.message : 'Error saving')
     } finally {
       setSubmitting(false)
     }
   }
 
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Delete this page? All related parsed records will be removed.')) return
+    setError(null)
+    try {
+      await deletePage(id)
+      if (editingId === id) resetForm()
+      load()
+      refreshSidebar()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error deleting')
+    }
+  }
+
   return (
     <div className="form-page">
-      <h1>Добавяне на страница (статия)</h1>
+      <h1>{editingId != null ? 'Edit page (article)' : 'Add page (article)'}</h1>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="page-site">Сайт</label>
+          <label htmlFor="page-site">Site</label>
           <select
             id="page-site"
             value={siteId}
             onChange={(e) => setSiteId(e.target.value === '' ? '' : Number(e.target.value))}
             required
           >
-            <option value="">— Изберете сайт —</option>
+            <option value="">— Select site —</option>
             {sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -70,13 +121,13 @@ export function AddPage() {
           </select>
         </div>
         <div className="form-group">
-          <label htmlFor="page-title">Заглавие (по избор)</label>
+          <label htmlFor="page-title">Title (optional)</label>
           <input
             id="page-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Заглавие на статията"
+            placeholder="Article title"
           />
         </div>
         <div className="form-group">
@@ -93,25 +144,45 @@ export function AddPage() {
         {error && <p className="form-error">{error}</p>}
         <div className="form-actions">
           <button type="submit" className="primary" disabled={submitting}>
-            {submitting ? 'Записване…' : 'Добави страница'}
+            {submitting ? 'Saving…' : editingId != null ? 'Update page' : 'Add page'}
           </button>
+          {editingId != null && (
+            <button type="button" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
         </div>
       </form>
 
       <section className="list-section">
-        <h2>Съществуващи страници (статии)</h2>
+        <h2>Existing pages (articles)</h2>
         {loading ? (
-          <p>Зареждане…</p>
+          <p>Loading…</p>
         ) : list.length === 0 ? (
-          <p>Няма добавени страници.</p>
+          <p>No pages yet.</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {list.map((p) => (
-              <li key={p.id} className="list-item">
-                <strong>{p.title || p.url}</strong>
-                {p.site_name && <><br /><small>Сайт: {p.site_name}</small></>}
-                <br />
-                <small>{p.url}</small>
+              <li key={p.id} className="list-item list-item--crud">
+                <div>
+                  <strong>{p.title || p.url}</strong>
+                  {p.site_name && (
+                    <>
+                      <br />
+                      <small>Site: {p.site_name}</small>
+                    </>
+                  )}
+                  <br />
+                  <small>{p.url}</small>
+                </div>
+                <div className="list-item-actions">
+                  <button type="button" onClick={() => handleEdit(p.id)}>
+                    Edit
+                  </button>
+                  <button type="button" className="danger" onClick={() => handleDelete(p.id)}>
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

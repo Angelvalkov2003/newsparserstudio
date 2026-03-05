@@ -99,6 +99,18 @@
   border-color: #c5c5c5;
 }
 
+.app-bottom-bar-btn--primary {
+  background: var(--editor-accent);
+  color: #fff;
+  border-color: var(--editor-accent);
+}
+
+.app-bottom-bar-btn--primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
 .app-bottom-bar-error {
   font-size: 0.8125rem;
   color: var(--editor-error, #f38ba8);

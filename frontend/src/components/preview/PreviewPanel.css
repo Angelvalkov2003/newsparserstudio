@@ -83,6 +83,29 @@
   padding: 1.25rem;
 }
 
+.preview-panel-footer {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--preview-border, #313244);
+  background: var(--preview-toolbar-bg, #181825);
+}
+
+.preview-panel-download-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--preview-fg, #cdd6f4);
+  background: var(--preview-input-bg, #313244);
+  border: 1px solid var(--preview-border, #45475a);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.preview-panel-download-btn:hover {
+  background: var(--preview-border, #45475a);
+}
+
 .preview-iframe {
   display: block;
   width: 100%;
