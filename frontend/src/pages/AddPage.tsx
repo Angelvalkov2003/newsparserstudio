@@ -18,6 +18,8 @@ export function AddPage() {
   const [url, setUrl] = useState('')
   const [siteId, setSiteId] = useState<number | ''>('')
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
+  const [filterSiteId, setFilterSiteId] = useState<number | ''>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,6 +102,17 @@ export function AddPage() {
     }
   }
 
+  const filteredList = list.filter((p) => {
+    const matchSite = !filterSiteId || p.site_id === Number(filterSiteId)
+    const q = search.trim().toLowerCase()
+    const matchSearch =
+      !q ||
+      (p.title ?? '').toLowerCase().includes(q) ||
+      p.url.toLowerCase().includes(q) ||
+      (p.site_name ?? '').toLowerCase().includes(q)
+    return matchSite && matchSearch
+  })
+
   return (
     <div className="form-page">
       <h1>{editingId != null ? 'Edit page (article)' : 'Add page (article)'}</h1>
@@ -156,13 +169,34 @@ export function AddPage() {
 
       <section className="list-section">
         <h2>Existing pages (articles)</h2>
+        <div className="list-section-filters">
+          <input
+            type="search"
+            placeholder="Търсене по заглавие, URL или сайт..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="list-section-search"
+          />
+          <select
+            value={filterSiteId}
+            onChange={(e) => setFilterSiteId(e.target.value === '' ? '' : Number(e.target.value))}
+            className="list-section-filter"
+          >
+            <option value="">Всички сайтове</option>
+            {sites.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
         {loading ? (
           <p>Loading…</p>
-        ) : list.length === 0 ? (
-          <p>No pages yet.</p>
+        ) : filteredList.length === 0 ? (
+          <p>{list.length === 0 ? 'No pages yet.' : 'Няма резултати за търсенето/филтъра.'}</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {list.map((p) => (
+            {filteredList.map((p) => (
               <li key={p.id} className="list-item list-item--crud">
                 <div>
                   <strong>{p.title || p.url}</strong>

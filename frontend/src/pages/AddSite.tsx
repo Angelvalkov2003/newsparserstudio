@@ -7,6 +7,7 @@ export function AddSite() {
   const [url, setUrl] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [list, setList] = useState<SiteType[]>([])
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,6 +82,13 @@ export function AddSite() {
     }
   }
 
+  const filteredList = list.filter(
+    (s) =>
+      !search.trim() ||
+      s.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+      s.url.toLowerCase().includes(search.trim().toLowerCase())
+  )
+
   return (
     <div className="form-page">
       <h1>{editingId != null ? 'Edit site' : 'Add site'}</h1>
@@ -122,13 +130,22 @@ export function AddSite() {
 
       <section className="list-section">
         <h2>Existing sites</h2>
+        <div className="list-section-filters">
+          <input
+            type="search"
+            placeholder="Търсене по име или URL..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="list-section-search"
+          />
+        </div>
         {loading ? (
           <p>Loading…</p>
-        ) : list.length === 0 ? (
-          <p>No sites yet.</p>
+        ) : filteredList.length === 0 ? (
+          <p>{list.length === 0 ? 'No sites yet.' : 'Няма резултати за търсенето.'}</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {list.map((s) => (
+            {filteredList.map((s) => (
               <li key={s.id} className="list-item list-item--crud">
                 <div>
                   <strong>{s.name}</strong>

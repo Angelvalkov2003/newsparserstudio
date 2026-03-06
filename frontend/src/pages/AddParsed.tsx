@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react'
 import {
+  fetchSites,
   fetchPages,
   fetchParsed,
   getParsed,
   createParsed,
   updateParsed,
   deleteParsed,
+  type Site,
   type PageWithSite,
   type ParsedWithPage,
 } from '../api'
 import { refreshSidebar } from '../utils/sidebarRefresh'
 
 export function AddParsed() {
+  const [sites, setSites] = useState<Site[]>([])
   const [pages, setPages] = useState<PageWithSite[]>([])
   const [list, setList] = useState<ParsedWithPage[]>([])
   const [pageId, setPageId] = useState<number | ''>('')
@@ -20,6 +23,8 @@ export function AddParsed() {
   const [info, setInfo] = useState('')
   const [isVerified, setIsVerified] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
+  const [filterSiteId, setFilterSiteId] = useState<number | ''>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +32,12 @@ export function AddParsed() {
   const load = async () => {
     setLoading(true)
     try {
-      const [pagesData, parsedData] = await Promise.all([fetchPages(), fetchParsed()])
+      const [sitesData, pagesData, parsedData] = await Promise.all([
+        fetchSites(),
+        fetchPages(),
+        fetchParsed(),
+      ])
+      setSites(sitesData)
       setPages(pagesData)
       setList(parsedData)
       if (pagesData.length && pageId === '' && editingId == null) setPageId(pagesData[0].id)
@@ -132,6 +142,20 @@ export function AddParsed() {
     }
   }
 
+  const filteredList = list.filter((r) => {
+    const page = pages.find((p) => p.id === r.page_id)
+    const matchSite = !filterSiteId || page?.site_id === Number(filterSiteId)
+    const q = search.trim().toLowerCase()
+    const matchSearch =
+      !q ||
+      (r.name ?? '').toLowerCase().includes(q) ||
+      (r.info ?? '').toLowerCase().includes(q) ||
+      (r.page_title ?? '').toLowerCase().includes(q) ||
+      (r.page_url ?? '').toLowerCase().includes(q) ||
+      (page?.site_name ?? '').toLowerCase().includes(q)
+    return matchSite && matchSearch
+  })
+
   return (
     <div className="form-page">
       <h1>{editingId != null ? 'Edit parsed (JSON)' : 'Add parsed (JSON for comparison)'}</h1>
@@ -210,13 +234,34 @@ export function AddParsed() {
 
       <section className="list-section">
         <h2>Existing parsed records</h2>
+        <div className="list-section-filters">
+          <input
+            type="search"
+            placeholder="Търсене по име, info, страница..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="list-section-search"
+          />
+          <select
+            value={filterSiteId}
+            onChange={(e) => setFilterSiteId(e.target.value === '' ? '' : Number(e.target.value))}
+            className="list-section-filter"
+          >
+            <option value="">Всички уебсайтове</option>
+            {sites.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
         {loading ? (
           <p>Loading…</p>
-        ) : list.length === 0 ? (
-          <p>No records yet.</p>
+        ) : filteredList.length === 0 ? (
+          <p>{list.length === 0 ? 'No records yet.' : 'Няма резултати за търсенето/филтъра.'}</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {list.map((r) => (
+            {filteredList.map((r) => (
               <li key={r.id} className="list-item list-item--crud">
                 <div>
                   <strong>{r.name || `Parsed #${r.id}`}</strong>
