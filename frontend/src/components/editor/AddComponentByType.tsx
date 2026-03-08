@@ -37,6 +37,7 @@ export function AddComponentByType({
 }: AddComponentByTypeProps) {
   const [selectedType, setSelectedType] = useState<ArticleComponentType | "">("");
   const [draft, setDraft] = useState<ArticleComponent | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedType) {
@@ -54,6 +55,13 @@ export function AddComponentByType({
       ? { ...draft, id: generateComponentId() }
       : draft;
     dispatch({ type: "ADD_COMPONENT", payload: component });
+    setSelectedType("");
+    setDraft(null);
+    setModalOpen(false);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
     setSelectedType("");
     setDraft(null);
   };
@@ -82,34 +90,66 @@ export function AddComponentByType({
   if (compact) {
     return (
       <div className="editor-add-by-type-compact">
-        {select}
-        {draft && (
-          <div className="editor-add-by-type-draft">
-            <div className="add-component-form">
-              <ComponentEditor
-                component={draft}
-                index={0}
-                onChange={(_index, next) => setDraft(next)}
-              />
-            </div>
-            <div className="editor-add-by-type-actions">
-              <button
-                type="button"
-                className="editor-button editor-button--primary"
-                onClick={handleAdd}
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                className="editor-button editor-button--secondary"
-                onClick={() => {
-                  setSelectedType("");
-                  setDraft(null);
-                }}
-              >
-                Cancel
-              </button>
+        <button
+          type="button"
+          className="editor-panel-action-btn"
+          onClick={() => setModalOpen(true)}
+          aria-label="Add component"
+        >
+          Add component
+        </button>
+        {modalOpen && (
+          <div
+            className="editor-add-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="editor-add-modal-title"
+          >
+            <div className="editor-add-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="editor-add-modal-header">
+                <h2 id="editor-add-modal-title" className="editor-add-modal-title">
+                  Add component
+                </h2>
+                <button
+                  type="button"
+                  className="editor-add-modal-close"
+                  onClick={closeModal}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="editor-add-modal-body">
+                {select}
+                {draft && (
+                  <div className="editor-add-by-type-draft">
+                    <div className="add-component-form">
+                      <ComponentEditor
+                        component={draft}
+                        index={0}
+                        onChange={(_index, next) => setDraft(next)}
+                        hideTypeSelect
+                      />
+                    </div>
+                    <div className="editor-add-by-type-actions">
+                      <button
+                        type="button"
+                        className="editor-button editor-button--primary"
+                        onClick={handleAdd}
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        className="editor-button editor-button--secondary"
+                        onClick={closeModal}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

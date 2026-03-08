@@ -33,17 +33,24 @@ export interface ComponentEditorProps {
   component: ArticleComponent;
   index: number;
   onChange: (index: number, next: ArticleComponent) => void;
+  /** When true, hide the Type dropdown in Style & attributes (e.g. in Add component modal). */
+  hideTypeSelect?: boolean;
 }
 
 export function ComponentEditor({
   component,
   index,
   onChange,
+  hideTypeSelect = false,
 }: ComponentEditorProps) {
   const handleChange = (next: ArticleComponent) => onChange(index, next);
 
   const styleSection = (
-    <ComponentStyleSection component={component} onChange={handleChange} />
+    <ComponentStyleSection
+      component={component}
+      onChange={handleChange}
+      hideTypeSelect={hideTypeSelect}
+    />
   );
 
   switch (component.type) {

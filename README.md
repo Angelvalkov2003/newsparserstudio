@@ -1,11 +1,11 @@
-# NewsParserStudio
+# Universal Markdown Builder Studio
 
-Full-stack web app: **FastAPI** backend + **React + Vite + TypeScript** frontend. JSON-based workflow, no database, local development only.
+Full-stack web app: **FastAPI** backend + **React + Vite + TypeScript** frontend. JSON-based workflow, SQLite persistence, local development.
 
 ## Folder structure
 
 ```
-newsparserstudio/
+universal-markdown-builder-studio/
 ├── backend/                    # FastAPI app
 │   ├── main.py                 # App entry, CORS, minimal routes
 │   └── requirements.txt

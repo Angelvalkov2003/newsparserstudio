@@ -1,0 +1,121 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--preview-bg, #f0f2f5);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+  background: var(--editor-bg, #fff);
+  border: 1px solid var(--editor-border, #e0e0e0);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.1));
+}
+
+.login-title {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--editor-fg, #1a1a1a);
+}
+
+.login-subtitle {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9375rem;
+  color: var(--editor-muted, #666);
+}
+
+.login-form {
+  margin-bottom: 0;
+}
+
+.login-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.login-form .form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+  color: var(--editor-fg);
+}
+
+.login-form .form-group input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-input-bg);
+  color: var(--editor-fg);
+}
+
+.login-form .form-group input:focus {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 2px;
+}
+
+.login-form .form-error {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--editor-error);
+}
+
+.login-actions {
+  margin-top: 1.25rem;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.login-btn--primary {
+  background: var(--editor-accent);
+  color: #fff;
+  border-color: var(--editor-accent);
+}
+
+.login-btn--primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.login-btn--primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-divider {
+  margin: 1.5rem 0;
+  text-align: center;
+  color: var(--editor-muted);
+  font-size: 0.875rem;
+}
+
+.login-btn--guest {
+  background: var(--editor-input-bg);
+  color: var(--editor-fg);
+  border-color: var(--editor-border);
+}
+
+.login-btn--guest:hover {
+  background: var(--editor-border);
+}
+
+.login-guest-hint {
+  margin: 1rem 0 0 0;
+  font-size: 0.8125rem;
+  color: var(--editor-muted);
+}

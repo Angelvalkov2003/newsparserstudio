@@ -9,7 +9,7 @@ from models import Base
 
 # Database file next to backend folder
 DB_DIR = os.path.dirname(os.path.abspath(__file__))
-SQLITE_URL = f"sqlite:///{os.path.join(DB_DIR, 'newsparserstudio.db')}"
+SQLITE_URL = f"sqlite:///{os.path.join(DB_DIR, 'universal_markdown_builder_studio.db')}"
 
 engine = create_engine(
     SQLITE_URL,

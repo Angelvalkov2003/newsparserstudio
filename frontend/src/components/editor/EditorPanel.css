@@ -113,6 +113,78 @@
   flex-shrink: 0;
 }
 
+.editor-add-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.editor-add-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--editor-bg, #1e1e2e);
+  border: 1px solid var(--editor-border, #313244);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.editor-add-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--editor-border, #313244);
+  background: var(--editor-toolbar-bg, #181825);
+  border-radius: 12px 12px 0 0;
+}
+
+.editor-add-modal-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--editor-fg, #cdd6f4);
+}
+
+.editor-add-modal-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--editor-muted, #a6adc8);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.editor-add-modal-close:hover {
+  color: var(--editor-fg, #cdd6f4);
+  background: var(--editor-border, #45475a);
+}
+
+.editor-add-modal-body {
+  padding: 1rem;
+}
+
+.editor-add-modal-body .editor-add-by-type-draft {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--editor-border, #313244);
+}
+
 .editor-add-by-type-draft {
   width: 100%;
   margin-top: 0.75rem;

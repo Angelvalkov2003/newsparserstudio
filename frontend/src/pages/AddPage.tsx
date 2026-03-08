@@ -172,7 +172,7 @@ export function AddPage() {
         <div className="list-section-filters">
           <input
             type="search"
-            placeholder="Търсене по заглавие, URL или сайт..."
+            placeholder="Search by title, URL or site..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="list-section-search"
@@ -182,7 +182,7 @@ export function AddPage() {
             onChange={(e) => setFilterSiteId(e.target.value === '' ? '' : Number(e.target.value))}
             className="list-section-filter"
           >
-            <option value="">Всички сайтове</option>
+            <option value="">All sites</option>
             {sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -193,7 +193,7 @@ export function AddPage() {
         {loading ? (
           <p>Loading…</p>
         ) : filteredList.length === 0 ? (
-          <p>{list.length === 0 ? 'No pages yet.' : 'Няма резултати за търсенето/филтъра.'}</p>
+          <p>{list.length === 0 ? 'No pages yet.' : 'No results for your search or filter.'}</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {filteredList.map((p) => (

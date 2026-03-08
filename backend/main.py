@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="NewsParserStudio API",
+    title="Universal Markdown Builder Studio API",
     description="JSON upload/download and responses. SQLite persistence.",
     version="0.1.0",
     lifespan=lifespan,
@@ -38,7 +38,7 @@ app.add_middleware(
 @app.get("/")
 def root():
     """Health / root endpoint."""
-    return {"status": "ok", "message": "NewsParserStudio API"}
+    return {"status": "ok", "message": "Universal Markdown Builder Studio API"}
 
 
 @app.get("/health")

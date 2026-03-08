@@ -179,18 +179,39 @@ export function EditorPage() {
       .finally(() => setVerifying(false))
   }, [pageId, page, state.data_corrected, refetchParsed])
 
-  const handleSaveToVerified = useCallback(() => {
-    if (typeof selectedReference !== 'number' || !pageId) return
-    const verified = verifiedList.find((p) => p.id === selectedReference)
-    if (!verified) return
+  const handleSaveParsed = useCallback(() => {
+    if (!pageId) return
     setBarError(null)
     setSaving(true)
     const dataStr = JSON.stringify(state.data_corrected)
-    updateParsed(selectedReference, pageId, verified.name, dataStr, verified.info, true)
-      .then(() => { refetchParsed(); refreshSidebar() })
-      .catch((e) => setBarError(e instanceof Error ? e.message : 'Save failed'))
-      .finally(() => setSaving(false))
-  }, [selectedReference, pageId, verifiedList, state.data_corrected, refetchParsed])
+    // Save to the working copy (unverified) we are editing, so added components persist
+    if (selectedUnverifiedId != null) {
+      const unverified = unverifiedList.find((p) => p.id === selectedUnverifiedId)
+      if (!unverified) {
+        setSaving(false)
+        return
+      }
+      updateParsed(selectedUnverifiedId, pageId, unverified.name, dataStr, unverified.info, false)
+        .then(() => { refetchParsed(); refreshSidebar() })
+        .catch((e) => setBarError(e instanceof Error ? e.message : 'Save failed'))
+        .finally(() => setSaving(false))
+      return
+    }
+    // Or save to the selected verified reference
+    if (typeof selectedReference === 'number') {
+      const verified = verifiedList.find((p) => p.id === selectedReference)
+      if (!verified) {
+        setSaving(false)
+        return
+      }
+      updateParsed(selectedReference, pageId, verified.name, dataStr, verified.info, true)
+        .then(() => { refetchParsed(); refreshSidebar() })
+        .catch((e) => setBarError(e instanceof Error ? e.message : 'Save failed'))
+        .finally(() => setSaving(false))
+    } else {
+      setSaving(false)
+    }
+  }, [pageId, selectedUnverifiedId, selectedReference, unverifiedList, verifiedList, state.data_corrected, refetchParsed])
 
   const handleDownloadCurrentParsed = useCallback(() => {
     downloadParsedFile(state.url, state.data_corrected, {
@@ -258,8 +279,8 @@ export function EditorPage() {
             onVerify={handleVerify}
             verifying={verifying}
             showSaveParsed={pageId != null}
-            saveParsedDisabled={typeof selectedReference !== 'number'}
-            onSaveParsed={handleSaveToVerified}
+            saveParsedDisabled={selectedUnverifiedId == null && typeof selectedReference !== 'number'}
+            onSaveParsed={handleSaveParsed}
             savingParsed={saving}
             onDownloadCurrentParsed={handleDownloadCurrentParsed}
           />

@@ -21,11 +21,14 @@ const TYPE_LABELS: Record<string, string> = {
 interface ComponentStyleSectionProps {
   component: ArticleComponent;
   onChange: (next: ArticleComponent) => void;
+  /** When true, hide the Type dropdown (e.g. in Add component modal where type is already chosen). */
+  hideTypeSelect?: boolean;
 }
 
 export function ComponentStyleSection({
   component,
   onChange,
+  hideTypeSelect = false,
 }: ComponentStyleSectionProps) {
   const handleTypeChange = (newType: ArticleComponentType) => {
     if (newType === component.type) return;
@@ -55,23 +58,25 @@ export function ComponentStyleSection({
   return (
     <div className="component-editor-style-section">
       <span className="editor-label">Style & attributes</span>
-      <label className="editor-field">
-        <span className="editor-label">Type</span>
-        <select
-          className="editor-select"
-          value={component.type}
-          onChange={(e) =>
-            handleTypeChange((e.target.value as ArticleComponentType) || "paragraph")
-          }
-          aria-label="Component type"
-        >
-          {COMPONENT_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {TYPE_LABELS[t] ?? t}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!hideTypeSelect && (
+        <label className="editor-field">
+          <span className="editor-label">Type</span>
+          <select
+            className="editor-select"
+            value={component.type}
+            onChange={(e) =>
+              handleTypeChange((e.target.value as ArticleComponentType) || "paragraph")
+            }
+            aria-label="Component type"
+          >
+            {COMPONENT_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABELS[t] ?? t}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label className="editor-field">
         <span className="editor-label">ID</span>
         <input

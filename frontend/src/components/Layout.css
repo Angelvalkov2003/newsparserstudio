@@ -23,6 +23,33 @@
   flex-shrink: 0;
 }
 
+.layout-header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.layout-header-username {
+  font-size: 0.9375rem;
+  color: var(--editor-muted);
+}
+
+.layout-header-logout {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--editor-fg);
+  background: var(--editor-input-bg);
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.layout-header-logout:hover {
+  background: var(--editor-border);
+}
+
 .layout-brand {
   font-size: 1.125rem;
   font-weight: 700;
@@ -129,6 +156,63 @@
   outline-offset: 2px;
 }
 
+/* Password field – wrap with toggle */
+.form-group--password .password-input-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--editor-border);
+  border-radius: 10px;
+  background: var(--editor-input-bg);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group--password .password-input-wrap:focus-within {
+  border-color: var(--editor-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.form-group--password .password-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--editor-fg);
+  letter-spacing: 0.05em;
+}
+
+.form-group--password .password-input::placeholder {
+  letter-spacing: normal;
+  color: var(--editor-muted);
+}
+
+.form-group--password .password-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.form-group--password .password-toggle {
+  flex-shrink: 0;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--editor-accent);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--editor-border);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.form-group--password .password-toggle:hover {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
 .form-actions {
   margin-top: 1.25rem;
   display: flex;
@@ -168,6 +252,30 @@
   font-size: 1.125rem;
   margin: 0 0 0.75rem 0;
   color: var(--editor-fg);
+}
+
+.list-section-empty {
+  color: var(--editor-muted);
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.users-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.users-list-item {
+  margin-bottom: 0.5rem;
+}
+
+.users-list-role {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--editor-accent);
+  text-transform: uppercase;
 }
 
 .list-section-filters {

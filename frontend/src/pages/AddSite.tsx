@@ -133,7 +133,7 @@ export function AddSite() {
         <div className="list-section-filters">
           <input
             type="search"
-            placeholder="Търсене по име или URL..."
+            placeholder="Search by name or URL..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="list-section-search"
@@ -142,7 +142,7 @@ export function AddSite() {
         {loading ? (
           <p>Loading…</p>
         ) : filteredList.length === 0 ? (
-          <p>{list.length === 0 ? 'No sites yet.' : 'Няма резултати за търсенето.'}</p>
+          <p>{list.length === 0 ? 'No sites yet.' : 'No results for your search.'}</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {filteredList.map((s) => (
