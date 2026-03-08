@@ -1,18 +1,6 @@
-sqlite baza
-
-
-"website name", website url
-pages:
-[
-    page name, page url, 
-    parsed:
-    [
-        name?
-        data
-        info
-        is_verified},
-        {}
-    ]
-
-    
-],[]
+User по един verified, Всеки паге allowed for, rrestricked for, проверка човек да не е и в двете. Админ прави профили на хората. Усърнейм и парола
+Опция за добавяне на User
+Admin - вижда всички Verified и всички статии и висчко. Full crud над потребители
+Guess
+MongoDB 
+Universal Markdown Builder
