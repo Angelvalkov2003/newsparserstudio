@@ -144,7 +144,7 @@ export function AddParsed() {
 
   const filteredList = list.filter((r) => {
     const page = pages.find((p) => p.id === r.page_id)
-    const matchSite = !filterSiteId || page?.site_id === Number(filterSiteId)
+    const matchSite = !filterSiteId || page?.site_id === filterSiteId
     const q = search.trim().toLowerCase()
     const matchSearch =
       !q ||

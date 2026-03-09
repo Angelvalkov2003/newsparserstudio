@@ -41,8 +41,8 @@ export function saveAndDownload(
 
 /** Extra fields for parsed export/import (is_verified, updated_at, etc.). */
 export interface ParsedExportMeta {
-  id?: number;
-  page_id?: number;
+  id?: string;
+  page_id?: string;
   name?: string | null;
   info?: string | null;
   is_verified?: boolean;

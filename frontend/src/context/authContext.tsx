@@ -1,116 +1,159 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import {
+  setAuthToken,
+  authLogin,
+  authGuest,
+  authRegister,
+  authMe,
+  type UserPublic,
+} from '../api'
 
-const CURRENT_USER_KEY = 'umb_current_user'
+const TOKEN_KEY = 'umb_token'
+const USER_KEY = 'umb_current_user'
 
-export type UserRole = 'admin' | 'user'
+export type UserRole = 'admin' | 'regular' | 'guest'
 
 export interface CurrentUser {
   id: string
   name: string
   role: UserRole
   isGuest?: boolean
+  isVerifiedByAdmin?: boolean
 }
 
 interface AuthContextValue {
   currentUser: CurrentUser | null
-  login: (name: string, password: string) => { success: boolean; error?: string }
-  loginAsGuest: () => void
+  login: (name: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (name: string, password: string) => Promise<{ success: boolean; error?: string }>
+  loginAsGuest: () => Promise<void>
   logout: () => void
+  loading: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function loadStoredUser(): CurrentUser | null {
-  try {
-    const raw = localStorage.getItem(CURRENT_USER_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (parsed && typeof parsed.id === 'string' && typeof parsed.name === 'string' && typeof parsed.role === 'string') {
-      const name = parsed.name === 'Гост' ? 'Guest' : parsed.name
-      const user = {
-        id: parsed.id,
-        name,
-        role: parsed.role === 'admin' ? 'admin' : 'user',
-        isGuest: Boolean(parsed.isGuest),
-      }
-      if (parsed.name === 'Гост') {
-        try {
-          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user))
-        } catch {}
-      }
-      return user
-    }
-  } catch {}
-  return null
-}
-
-function saveStoredUser(user: CurrentUser | null) {
-  if (user) {
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user))
-  } else {
-    localStorage.removeItem(CURRENT_USER_KEY)
+function userPublicToCurrent(u: UserPublic): CurrentUser {
+  return {
+    id: u.id,
+    name: u.username,
+    role: (u.role as UserRole) || 'regular',
+    isGuest: u.is_guest,
+    isVerifiedByAdmin: u.is_verified_by_admin,
   }
 }
 
-const USERS_STORAGE_KEY = 'umb_users'
-
-function findUserByNameAndPassword(name: string, password: string): CurrentUser | null {
+function loadStoredToken(): string | null {
   try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY)
-    if (!raw) return null
-    const users = JSON.parse(raw)
-    if (!Array.isArray(users)) return null
-    const trimmed = name.trim().toLowerCase()
-    const found = users.find(
-      (u: { name?: string; password?: string }) =>
-        String(u.name || '').trim().toLowerCase() === trimmed && (u.password ?? '') === password
-    )
-    if (!found) return null
-    return {
-      id: found.id,
-      name: found.name || '',
-      role: found.role === 'admin' ? 'admin' : 'user',
-      isGuest: false,
-    }
+    return localStorage.getItem(TOKEN_KEY)
   } catch {
     return null
   }
 }
 
+function saveStored(token: string | null, user: CurrentUser | null) {
+  if (token) localStorage.setItem(TOKEN_KEY, token)
+  else localStorage.removeItem(TOKEN_KEY)
+  if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
+  else localStorage.removeItem(USER_KEY)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(loadStoredUser)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    saveStoredUser(currentUser)
-  }, [currentUser])
-
-  const login = useCallback((name: string, password: string) => {
-    if (!name.trim()) return { success: false, error: 'Enter username.' }
-    if (!password) return { success: false, error: 'Enter password.' }
-    const user = findUserByNameAndPassword(name, password)
-    if (!user) return { success: false, error: 'Wrong username or password.' }
-    setCurrentUser(user)
-    return { success: true }
+    const token = loadStoredToken()
+    if (!token) {
+      setAuthToken(null)
+      setCurrentUser(null)
+      setLoading(false)
+      return
+    }
+    setAuthToken(token)
+    authMe()
+      .then((u) => {
+        setCurrentUser(userPublicToCurrent(u))
+        saveStored(token, userPublicToCurrent(u))
+      })
+      .catch(() => {
+        setAuthToken(null)
+        setCurrentUser(null)
+        saveStored(null, null)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
-  const loginAsGuest = useCallback(() => {
-    setCurrentUser({
-      id: 'guest',
-      name: 'Guest',
-      role: 'user',
-      isGuest: true,
-    })
+  const login = useCallback(
+    async (name: string, password: string): Promise<{ success: boolean; error?: string }> => {
+      if (!name.trim()) return { success: false, error: 'Enter username.' }
+      if (!password) return { success: false, error: 'Enter password.' }
+      try {
+        const res = await authLogin(name.trim(), password)
+        setAuthToken(res.access_token)
+        const user = userPublicToCurrent(res.user)
+        setCurrentUser(user)
+        saveStored(res.access_token, user)
+        return { success: true }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Login failed.'
+        return { success: false, error: msg }
+      }
+    },
+    []
+  )
+
+  const register = useCallback(
+    async (name: string, password: string): Promise<{ success: boolean; error?: string }> => {
+      if (!name.trim()) return { success: false, error: 'Enter username.' }
+      if (!password) return { success: false, error: 'Enter password.' }
+      try {
+        const res = await authRegister(name.trim(), password)
+        setAuthToken(res.access_token)
+        const user = userPublicToCurrent(res.user)
+        setCurrentUser(user)
+        saveStored(res.access_token, user)
+        return { success: true }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Registration failed.'
+        return { success: false, error: msg }
+      }
+    },
+    []
+  )
+
+  const loginAsGuest = useCallback(async () => {
+    try {
+      const res = await authGuest()
+      setAuthToken(res.access_token)
+      const user = userPublicToCurrent(res.user)
+      setCurrentUser(user)
+      saveStored(res.access_token, user)
+    } catch {
+      // fallback: local-only guest
+      setAuthToken(null)
+      setCurrentUser({
+        id: 'guest-local',
+        name: 'Guest',
+        role: 'guest',
+        isGuest: true,
+      })
+      saveStored(null, null)
+    }
   }, [])
 
   const logout = useCallback(() => {
+    setAuthToken(null)
     setCurrentUser(null)
+    saveStored(null, null)
   }, [])
 
   const value: AuthContextValue = {
     currentUser,
     login,
+    register,
     loginAsGuest,
     logout,
+    loading,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

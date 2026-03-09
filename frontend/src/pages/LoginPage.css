@@ -97,6 +97,22 @@
   cursor: not-allowed;
 }
 
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.login-btn--secondary {
+  background: var(--editor-input-bg);
+  color: var(--editor-fg);
+  border-color: var(--editor-border);
+}
+
+.login-btn--secondary:hover:not(:disabled) {
+  background: var(--editor-border);
+}
+
 .login-divider {
   margin: 1.5rem 0;
   text-align: center;

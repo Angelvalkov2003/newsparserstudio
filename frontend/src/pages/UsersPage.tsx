@@ -1,54 +1,42 @@
-import { useState, useEffect } from 'react'
-
-const STORAGE_KEY = 'umb_users'
-
-export type UserRole = 'admin' | 'user'
-
-export interface User {
-  id: string
-  name: string
-  password?: string
-  role: UserRole
-  createdAt: string
-}
-
-function loadUsers(): User[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function saveUsers(users: User[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users))
-}
-
-function nextId(): string {
-  return `user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-}
+import { useState, useEffect, useCallback } from 'react'
+import { fetchUsers, createUser, updateUser, type UserPublic } from '../api'
+import { useIsAdmin } from '../context/authContext'
 
 export function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [name, setName] = useState('')
+  const isAdmin = useIsAdmin()
+  const [users, setUsers] = useState<UserPublic[]>([])
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<UserRole>('user')
+  const [role, setRole] = useState<string>('regular')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    if (!isAdmin) {
+      setLoading(false)
+      return
+    }
+    try {
+      const list = await fetchUsers()
+      setUsers(list)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }, [isAdmin])
 
   useEffect(() => {
-    setUsers(loadUsers())
-  }, [])
+    load()
+  }, [load])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trimmedName = name.trim()
-    if (!trimmedName) {
-      setError('Enter name.')
+    const trimmed = username.trim()
+    if (!trimmed) {
+      setError('Enter username.')
       return
     }
     if (!password) {
@@ -57,37 +45,52 @@ export function UsersPage() {
     }
     setError(null)
     setSubmitting(true)
-    const newUser: User = {
-      id: nextId(),
-      name: trimmedName,
-      password: password,
-      role,
-      createdAt: new Date().toISOString(),
+    try {
+      await createUser(trimmed, password, role)
+      setUsername('')
+      setPassword('')
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Create failed')
+    } finally {
+      setSubmitting(false)
     }
-    const next = [...users, newUser]
-    setUsers(next)
-    saveUsers(next)
-    setName('')
-    setPassword('')
-    setRole('user')
-    setSubmitting(false)
+  }
+
+  const handleVerify = async (u: UserPublic) => {
+    if (u.role !== 'regular' || u.is_guest) return
+    try {
+      await updateUser(u.id, { is_verified_by_admin: !u.is_verified_by_admin })
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed')
+    }
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="form-page">
+        <h1>Users</h1>
+        <p style={{ color: 'var(--editor-muted)' }}>Only admins can manage users.</p>
+      </div>
+    )
   }
 
   return (
     <div className="form-page">
       <h1>Users</h1>
       <p style={{ color: 'var(--editor-muted)', marginBottom: '1rem', fontSize: '0.9375rem' }}>
-        This panel is only visible to users with the <strong>Admin</strong> role. Here you can create new users (name and password).
+        Create users (admin or regular). Regular users must be verified by an admin to log in.
       </p>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="user-name">Name</label>
+          <label htmlFor="user-name">Username</label>
           <input
             id="user-name"
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="User name"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
             autoComplete="off"
           />
         </div>
@@ -119,9 +122,9 @@ export function UsersPage() {
           <select
             id="user-role"
             value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
+            onChange={(e) => setRole(e.target.value)}
           >
-            <option value="user">User</option>
+            <option value="regular">Regular</option>
             <option value="admin">Admin</option>
           </select>
         </div>
@@ -135,19 +138,32 @@ export function UsersPage() {
 
       <section className="list-section">
         <h2>Existing users</h2>
-        {users.length === 0 ? (
-          <p className="list-section-empty">No users created yet.</p>
+        {loading ? (
+          <p className="list-section-empty">Loading…</p>
+        ) : users.length === 0 ? (
+          <p className="list-section-empty">No users yet.</p>
         ) : (
           <ul className="users-list">
             {users.map((u) => (
               <li key={u.id} className="list-item list-item--crud users-list-item">
                 <div>
-                  <strong>{u.name}</strong>
-                  <span className="users-list-role">{u.role === 'admin' ? 'Admin' : 'User'}</span>
-                  <br />
-                  <small style={{ color: 'var(--editor-muted)' }}>
-                    Created: {new Date(u.createdAt).toLocaleString()}
-                  </small>
+                  <strong>{u.username}</strong>
+                  <span className="users-list-role">
+                    {u.role === 'admin' ? 'Admin' : u.is_guest ? 'Guest' : 'Regular'}
+                    {u.role === 'regular' && !u.is_guest && (
+                      u.is_verified_by_admin ? ' (verified)' : ' (not verified)'
+                    )}
+                  </span>
+                  {u.role === 'regular' && !u.is_guest && (
+                    <button
+                      type="button"
+                      className="small-btn"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleVerify(u)}
+                    >
+                      {u.is_verified_by_admin ? 'Unverify' : 'Verify'}
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

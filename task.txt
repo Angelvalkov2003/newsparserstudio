@@ -1,6 +1,7 @@
-User по един verified, Всеки паге allowed for, rrestricked for, проверка човек да не е и в двете. Админ прави профили на хората. Усърнейм и парола
+User по един verified, Всеки паге allowed for, restricked for, проверка човек да не е и в двете. Админ прави профили на хората. Усърнейм и парола
 Опция за добавяне на User
 Admin - вижда всички Verified и всички статии и висчко. Full crud над потребители
 Guess
 MongoDB 
 Universal Markdown Builder
+https://docs.google.com/spreadsheets/d/1qQkMP_qp0rSC1mJDL0-xbF6DpmUSFxDElc0XtrpVYsU/edit?gid=0#gid=0

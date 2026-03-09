@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider, useCurrentUser } from './context/authContext'
+import { AuthProvider, useCurrentUser, useAuth } from './context/authContext'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { EditorPage } from './pages/EditorPage'
@@ -11,7 +11,14 @@ import { UsersPage } from './pages/UsersPage'
 import './App.css'
 
 function AppRoutes() {
-  const currentUser = useCurrentUser()
+  const { currentUser, loading } = useAuth()
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        Loading…
+      </div>
+    )
+  }
   if (!currentUser) {
     return <LoginPage />
   }

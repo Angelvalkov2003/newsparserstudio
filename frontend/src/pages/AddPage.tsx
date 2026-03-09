@@ -103,7 +103,7 @@ export function AddPage() {
   }
 
   const filteredList = list.filter((p) => {
-    const matchSite = !filterSiteId || p.site_id === Number(filterSiteId)
+    const matchSite = !filterSiteId || p.site_id === filterSiteId
     const q = search.trim().toLowerCase()
     const matchSearch =
       !q ||

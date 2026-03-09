@@ -3,26 +3,35 @@ import { useAuth } from '../context/authContext'
 import './LoginPage.css'
 
 export function LoginPage() {
-  const { login, loginAsGuest } = useAuth()
+  const { login, register, loginAsGuest } = useAuth()
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [isRegister, setIsRegister] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
-    const result = login(name, password)
+    const result = isRegister
+      ? await register(name, password)
+      : await login(name, password)
     setSubmitting(false)
     if (!result.success) {
-      setError(result.error ?? 'Login error.')
+      setError(result.error ?? (isRegister ? 'Registration error.' : 'Login error.'))
     }
   }
 
-  const handleGuest = () => {
+  const handleGuest = async () => {
     setError(null)
-    loginAsGuest()
+    setSubmitting(true)
+    try {
+      await loginAsGuest()
+    } catch {
+      setError('Guest login failed.')
+    }
+    setSubmitting(false)
   }
 
   return (
@@ -59,7 +68,15 @@ export function LoginPage() {
           {error && <p className="form-error">{error}</p>}
           <div className="login-actions">
             <button type="submit" className="login-btn login-btn--primary" disabled={submitting}>
-              {submitting ? 'Logging in…' : 'Login'}
+              {submitting ? (isRegister ? 'Registering…' : 'Logging in…') : isRegister ? 'Register' : 'Login'}
+            </button>
+            <button
+              type="button"
+              className="login-btn login-btn--secondary"
+              onClick={() => { setIsRegister((v) => !v); setError(null); }}
+              disabled={submitting}
+            >
+              {isRegister ? 'Back to login' : 'Register (first user only)'}
             </button>
           </div>
         </form>
@@ -72,8 +89,9 @@ export function LoginPage() {
           type="button"
           className="login-btn login-btn--guest"
           onClick={handleGuest}
+          disabled={submitting}
         >
-          Continue as guest
+          {submitting ? '…' : 'Continue as guest'}
         </button>
         <p className="login-guest-hint">Guest does not enter username or password. No access to the Users panel.</p>
       </div>
