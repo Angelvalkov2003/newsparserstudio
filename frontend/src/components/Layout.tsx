@@ -33,6 +33,11 @@ export function Layout() {
             <NavLink to="/import-bulk" className={({ isActive }) => (isActive ? 'active' : '')}>
               Import bulk
             </NavLink>
+            {isAdmin && (
+              <NavLink to="/admin" className={({ isActive }) => (isActive ? 'active' : '')}>
+                Admin
+              </NavLink>
+            )}
             {(isAdmin || currentUser?.isGuest) && (
               <NavLink to="/users" className={({ isActive }) => (isActive ? 'active' : '')}>
                 Users

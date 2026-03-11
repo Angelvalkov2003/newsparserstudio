@@ -7,24 +7,30 @@ import {
   createParsed,
   updateParsed,
   deleteParsed,
+  fetchUsers,
   type Site,
   type PageWithSite,
   type ParsedWithPage,
+  type UserPublic,
 } from '../api'
 import { refreshSidebar } from '../utils/sidebarRefresh'
+import { useIsAdmin } from '../context/authContext'
 
 export function AddParsed() {
+  const isAdmin = useIsAdmin()
   const [sites, setSites] = useState<Site[]>([])
   const [pages, setPages] = useState<PageWithSite[]>([])
   const [list, setList] = useState<ParsedWithPage[]>([])
-  const [pageId, setPageId] = useState<number | ''>('')
+  const [users, setUsers] = useState<UserPublic[]>([])
+  const [pageId, setPageId] = useState<string>('')
   const [name, setName] = useState('')
   const [dataJson, setDataJson] = useState('')
   const [info, setInfo] = useState('')
   const [isVerified, setIsVerified] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [allowedFor, setAllowedFor] = useState<string[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [filterSiteId, setFilterSiteId] = useState<number | ''>('')
+  const [filterSiteId, setFilterSiteId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,14 +38,16 @@ export function AddParsed() {
   const load = async () => {
     setLoading(true)
     try {
-      const [sitesData, pagesData, parsedData] = await Promise.all([
+      const [sitesData, pagesData, parsedData, usersRes] = await Promise.all([
         fetchSites(),
         fetchPages(),
         fetchParsed(),
+        isAdmin ? fetchUsers() : Promise.resolve([]),
       ])
       setSites(sitesData)
       setPages(pagesData)
       setList(parsedData)
+      setUsers(usersRes)
       if (pagesData.length && pageId === '' && editingId == null) setPageId(pagesData[0].id)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error loading data')
@@ -50,7 +58,7 @@ export function AddParsed() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [isAdmin])
 
   const resetForm = () => {
     setPageId(pages.length ? pages[0].id : '')
@@ -58,11 +66,12 @@ export function AddParsed() {
     setDataJson('')
     setInfo('')
     setIsVerified(false)
+    setAllowedFor([])
     setEditingId(null)
     setError(null)
   }
 
-  const handleEdit = async (id: number) => {
+  const handleEdit = async (id: string) => {
     try {
       const r = await getParsed(id)
       setPageId(r.page_id)
@@ -70,11 +79,16 @@ export function AddParsed() {
       setDataJson(r.data)
       setInfo(r.info ?? '')
       setIsVerified(r.is_verified)
+      setAllowedFor(r.allowed_for ?? [])
       setEditingId(id)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error loading record')
     }
+  }
+
+  const toggleAllowed = (userId: string) => {
+    setAllowedFor((prev) => (prev.includes(userId) ? prev.filter((x) => x !== userId) : [...prev, userId]))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,16 +114,17 @@ export function AddParsed() {
       if (editingId != null) {
         await updateParsed(
           editingId,
-          Number(pageId),
+          pageId,
           name.trim() || null,
           trimmed,
           info.trim() || null,
-          isVerified
+          isVerified,
+          isAdmin ? allowedFor : undefined
         )
         resetForm()
       } else {
         await createParsed(
-          Number(pageId),
+          pageId,
           name.trim() || null,
           trimmed,
           info.trim() || null,
@@ -129,7 +144,7 @@ export function AddParsed() {
     }
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this parsed record?')) return
     setError(null)
     try {
@@ -169,7 +184,7 @@ export function AddParsed() {
           <select
             id="parsed-page"
             value={pageId}
-            onChange={(e) => setPageId(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => setPageId(e.target.value)}
             required
           >
             <option value="">— Select page —</option>
@@ -219,6 +234,23 @@ export function AddParsed() {
           />
           <label htmlFor="parsed-verified">Data correct (is_verified) — reference data</label>
         </div>
+        {isAdmin && editingId != null && users.length > 0 && (
+          <div className="form-group">
+            <label>Who can see and use this record</label>
+            <div className="form-checkbox-list">
+              {users.filter((u) => !u.is_guest && u.role !== 'admin').map((u) => (
+                <label key={u.id} className="form-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={allowedFor.includes(u.id)}
+                    onChange={() => toggleAllowed(u.id)}
+                  />
+                  {u.username}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         {error && <p className="form-error">{error}</p>}
         <div className="form-actions">
           <button type="submit" className="primary" disabled={submitting}>
@@ -244,7 +276,7 @@ export function AddParsed() {
           />
           <select
             value={filterSiteId}
-            onChange={(e) => setFilterSiteId(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => setFilterSiteId(e.target.value)}
             className="list-section-filter"
           >
             <option value="">All websites</option>
@@ -278,6 +310,10 @@ export function AddParsed() {
                       <small>{r.info}</small>
                     </>
                   )}
+                  <div className="list-item-meta">
+                    <span title="Creator">By: {r.created_by_username ?? r.created_by ?? '—'}</span>
+                    <span title="Who has access">Access: {[...new Set([r.created_by_username ?? r.created_by, ...(r.allowed_for_usernames ?? r.allowed_for ?? [])].filter(Boolean))].join(', ') || '—'}</span>
+                  </div>
                 </div>
                 <div className="list-item-actions">
                   <button type="button" onClick={() => handleEdit(r.id)}>

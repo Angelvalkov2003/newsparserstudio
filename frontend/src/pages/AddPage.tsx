@@ -6,20 +6,26 @@ import {
   createPage,
   updatePage,
   deletePage,
+  fetchUsers,
   type Site,
   type PageWithSite,
+  type UserPublic,
 } from '../api'
 import { refreshSidebar } from '../utils/sidebarRefresh'
+import { useIsAdmin } from '../context/authContext'
 
 export function AddPage() {
+  const isAdmin = useIsAdmin()
   const [sites, setSites] = useState<Site[]>([])
   const [list, setList] = useState<PageWithSite[]>([])
+  const [users, setUsers] = useState<UserPublic[]>([])
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
-  const [siteId, setSiteId] = useState<number | ''>('')
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [siteId, setSiteId] = useState<string>('')
+  const [allowedFor, setAllowedFor] = useState<string[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [filterSiteId, setFilterSiteId] = useState<number | ''>('')
+  const [filterSiteId, setFilterSiteId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,9 +33,14 @@ export function AddPage() {
   const load = async () => {
     setLoading(true)
     try {
-      const [sitesData, pagesData] = await Promise.all([fetchSites(), fetchPages()])
+      const [sitesData, pagesData, usersRes] = await Promise.all([
+        fetchSites(),
+        fetchPages(),
+        isAdmin ? fetchUsers() : Promise.resolve([]),
+      ])
       setSites(sitesData)
       setList(pagesData)
+      setUsers(usersRes)
       if (sitesData.length && siteId === '' && editingId == null) setSiteId(sitesData[0].id)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error loading data')
@@ -40,27 +51,33 @@ export function AddPage() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [isAdmin])
 
   const resetForm = () => {
     setTitle('')
     setUrl('')
     setSiteId(sites.length ? sites[0].id : '')
+    setAllowedFor([])
     setEditingId(null)
     setError(null)
   }
 
-  const handleEdit = async (id: number) => {
+  const handleEdit = async (id: string) => {
     try {
       const page = await getPage(id)
       setTitle(page.title ?? '')
       setUrl(page.url)
       setSiteId(page.site_id)
+      setAllowedFor(page.allowed_for ?? [])
       setEditingId(id)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error loading page')
     }
+  }
+
+  const toggleAllowed = (userId: string) => {
+    setAllowedFor((prev) => (prev.includes(userId) ? prev.filter((x) => x !== userId) : [...prev, userId]))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,10 +90,10 @@ export function AddPage() {
     setSubmitting(true)
     try {
       if (editingId != null) {
-        await updatePage(editingId, title.trim() || null, url.trim(), Number(siteId))
+        await updatePage(editingId, title.trim() || null, url.trim(), siteId, isAdmin ? allowedFor : undefined)
         resetForm()
       } else {
-        await createPage(title.trim() || null, url.trim(), Number(siteId))
+        await createPage(title.trim() || null, url.trim(), siteId)
         setTitle('')
         setUrl('')
       }
@@ -89,7 +106,7 @@ export function AddPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this page? All related parsed records will be removed.')) return
     setError(null)
     try {
@@ -122,7 +139,7 @@ export function AddPage() {
           <select
             id="page-site"
             value={siteId}
-            onChange={(e) => setSiteId(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => setSiteId(e.target.value)}
             required
           >
             <option value="">— Select site —</option>
@@ -154,6 +171,23 @@ export function AddPage() {
             placeholder="https://..."
           />
         </div>
+        {isAdmin && editingId != null && users.length > 0 && (
+          <div className="form-group">
+            <label>Who can see and use this page</label>
+            <div className="form-checkbox-list">
+              {users.filter((u) => !u.is_guest && u.role !== 'admin').map((u) => (
+                <label key={u.id} className="form-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={allowedFor.includes(u.id)}
+                    onChange={() => toggleAllowed(u.id)}
+                  />
+                  {u.username}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         {error && <p className="form-error">{error}</p>}
         <div className="form-actions">
           <button type="submit" className="primary" disabled={submitting}>
@@ -179,7 +213,7 @@ export function AddPage() {
           />
           <select
             value={filterSiteId}
-            onChange={(e) => setFilterSiteId(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => setFilterSiteId(e.target.value)}
             className="list-section-filter"
           >
             <option value="">All sites</option>
@@ -208,6 +242,10 @@ export function AddPage() {
                   )}
                   <br />
                   <small>{p.url}</small>
+                  <div className="list-item-meta">
+                    <span title="Creator">By: {p.created_by_username ?? p.created_by ?? '—'}</span>
+                    <span title="Who has access">Access: {[...new Set([p.created_by_username ?? p.created_by, ...(p.allowed_for_usernames ?? p.allowed_for ?? [])].filter(Boolean))].join(', ') || '—'}</span>
+                  </div>
                 </div>
                 <div className="list-item-actions">
                   <button type="button" onClick={() => handleEdit(p.id)}>

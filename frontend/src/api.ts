@@ -9,6 +9,8 @@ export type Site = {
   url: string
   created_by?: string | null
   allowed_for?: string[]
+  created_by_username?: string | null
+  allowed_for_usernames?: string[]
   created_at: string
   updated_at: string
 }
@@ -19,6 +21,8 @@ export type Page = {
   site_id: string
   created_by?: string | null
   allowed_for?: string[]
+  created_by_username?: string | null
+  allowed_for_usernames?: string[]
   created_at: string
   updated_at: string
 }
@@ -32,6 +36,8 @@ export type Parsed = {
   is_verified: boolean
   created_by?: string | null
   allowed_for?: string[]
+  created_by_username?: string | null
+  allowed_for_usernames?: string[]
   created_at: string
   updated_at: string
 }
@@ -55,8 +61,9 @@ function getAuthHeadersNoBody(): Record<string, string> {
   return h
 }
 
-export async function fetchSites(): Promise<Site[]> {
-  const r = await fetch(`${API}/sites`, { headers: getAuthHeadersNoBody() })
+export async function fetchSites(sort?: 'created_by' | 'created_at'): Promise<Site[]> {
+  const url = sort ? `${API}/sites?sort=${encodeURIComponent(sort)}` : `${API}/sites`
+  const r = await fetch(url, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
@@ -77,11 +84,18 @@ export async function createSite(name: string, url: string): Promise<Site> {
   return r.json()
 }
 
-export async function updateSite(id: string, name: string, url: string): Promise<Site> {
+export async function updateSite(
+  id: string,
+  name: string,
+  url: string,
+  allowed_for?: string[]
+): Promise<Site> {
+  const body: { name: string; url: string; allowed_for?: string[] } = { name, url }
+  if (allowed_for !== undefined) body.allowed_for = allowed_for
   const r = await fetch(`${API}/sites/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ name, url }),
+    body: JSON.stringify(body),
   })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -95,8 +109,15 @@ export async function deleteSite(id: string): Promise<void> {
   if (!r.ok) throw new Error(await r.text())
 }
 
-export async function fetchPages(siteId?: string): Promise<PageWithSite[]> {
-  const url = siteId != null ? `${API}/pages?site_id=${encodeURIComponent(siteId)}` : `${API}/pages`
+export async function fetchPages(
+  siteId?: string,
+  sort?: 'created_by' | 'created_at'
+): Promise<PageWithSite[]> {
+  const params = new URLSearchParams()
+  if (siteId) params.set('site_id', siteId)
+  if (sort) params.set('sort', sort)
+  const q = params.toString()
+  const url = q ? `${API}/pages?${q}` : `${API}/pages`
   const r = await fetch(url, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -126,12 +147,19 @@ export async function updatePage(
   id: string,
   title: string | null,
   url: string,
-  site_id: string
+  site_id: string,
+  allowed_for?: string[]
 ): Promise<Page> {
+  const body: { title: string | null; url: string; site_id: string; allowed_for?: string[] } = {
+    title: title || null,
+    url,
+    site_id,
+  }
+  if (allowed_for !== undefined) body.allowed_for = allowed_for
   const r = await fetch(`${API}/pages/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ title: title || null, url, site_id }),
+    body: JSON.stringify(body),
   })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -145,9 +173,15 @@ export async function deletePage(id: string): Promise<void> {
   if (!r.ok) throw new Error(await r.text())
 }
 
-export async function fetchParsed(pageId?: string): Promise<ParsedWithPage[]> {
-  const url =
-    pageId != null ? `${API}/parsed?page_id=${encodeURIComponent(pageId)}` : `${API}/parsed`
+export async function fetchParsed(
+  pageId?: string,
+  sort?: 'created_by' | 'created_at'
+): Promise<ParsedWithPage[]> {
+  const params = new URLSearchParams()
+  if (pageId) params.set('page_id', pageId)
+  if (sort) params.set('sort', sort)
+  const q = params.toString()
+  const url = q ? `${API}/parsed?${q}` : `${API}/parsed`
   const r = await fetch(url, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -187,18 +221,28 @@ export async function updateParsed(
   name: string | null,
   data: string,
   info: string | null,
-  is_verified: boolean
+  is_verified: boolean,
+  allowed_for?: string[]
 ): Promise<Parsed> {
+  const body: {
+    page_id: string
+    name: string | null
+    data: string
+    info: string | null
+    is_verified: boolean
+    allowed_for?: string[]
+  } = {
+    page_id,
+    name: name || null,
+    data,
+    info: info || null,
+    is_verified,
+  }
+  if (allowed_for !== undefined) body.allowed_for = allowed_for
   const r = await fetch(`${API}/parsed/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
-    body: JSON.stringify({
-      page_id,
-      name: name || null,
-      data,
-      info: info || null,
-      is_verified,
-    }),
+    body: JSON.stringify(body),
   })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -249,6 +293,28 @@ export async function importBulk(payload: { sites: SiteBulkItem[] }): Promise<Im
 }
 
 // --- Auth API (used by authContext) ---
+const AUTH_TIMEOUT_MS = 15000
+
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = AUTH_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const r = await fetch(url, { ...options, signal: controller.signal })
+    clearTimeout(id)
+    return r
+  } catch (e) {
+    clearTimeout(id)
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('Server not responding. Is the backend running on port 8000?')
+    }
+    throw e
+  }
+}
+
 export type UserPublic = {
   id: string
   username: string
@@ -263,43 +329,50 @@ export type LoginResponse = {
   user: UserPublic
 }
 
+function getErrorFromResponse(text: string): string {
+  try {
+    const data = JSON.parse(text)
+    const d = data.detail
+    return typeof d === 'string' ? d : JSON.stringify(d ?? text)
+  } catch {
+    return text || 'Request failed'
+  }
+}
+
 export async function authLogin(username: string, password: string): Promise<LoginResponse> {
-  const r = await fetch(`${API}/auth/login`, {
+  const r = await fetchWithTimeout(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   })
-  if (!r.ok) {
-    const data = await r.json().catch(() => ({}))
-    throw new Error(data.detail ?? await r.text())
-  }
-  return r.json()
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Login failed')
+  return JSON.parse(text) as LoginResponse
 }
 
 export async function authGuest(): Promise<LoginResponse> {
-  const r = await fetch(`${API}/auth/guest`, { method: 'POST' })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  const r = await fetchWithTimeout(`${API}/auth/guest`, { method: 'POST' })
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Guest login failed')
+  return JSON.parse(text) as LoginResponse
 }
 
-/** Register first user (admin). Only works when there are no users. */
-export async function authRegister(username: string, password: string): Promise<LoginResponse> {
-  const r = await fetch(`${API}/auth/register`, {
+export async function authGuestResume(guestId: string): Promise<LoginResponse> {
+  const r = await fetchWithTimeout(`${API}/auth/guest-resume`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ guest_id: guestId }),
   })
-  if (!r.ok) {
-    const data = await r.json().catch(() => ({}))
-    throw new Error(data.detail ?? await r.text())
-  }
-  return r.json()
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Guest resume failed')
+  return JSON.parse(text) as LoginResponse
 }
 
 export async function authMe(): Promise<UserPublic> {
-  const r = await fetch(`${API}/auth/me`, { headers: getAuthHeadersNoBody() })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  const r = await fetchWithTimeout(`${API}/auth/me`, { headers: getAuthHeadersNoBody() }, 8000)
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Not authenticated')
+  return JSON.parse(text) as UserPublic
 }
 
 // --- Users API (admin) ---
@@ -319,11 +392,9 @@ export async function createUser(
     headers: getAuthHeaders(),
     body: JSON.stringify({ username, password, role }),
   })
-  if (!r.ok) {
-    const data = await r.json().catch(() => ({}))
-    throw new Error(data.detail ?? await r.text())
-  }
-  return r.json()
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Create user failed')
+  return JSON.parse(text) as UserPublic
 }
 
 export async function updateUser(
@@ -335,6 +406,7 @@ export async function updateUser(
     headers: getAuthHeaders(),
     body: JSON.stringify(updates),
   })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Update failed')
+  return JSON.parse(text) as UserPublic
 }

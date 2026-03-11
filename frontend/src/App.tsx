@@ -8,6 +8,7 @@ import { AddPage } from './pages/AddPage'
 import { AddParsed } from './pages/AddParsed'
 import { ImportBulk } from './pages/ImportBulk'
 import { UsersPage } from './pages/UsersPage'
+import { AdminPage } from './pages/AdminPage'
 import './App.css'
 
 function AppRoutes() {
@@ -32,6 +33,7 @@ function AppRoutes() {
           <Route path="parsed" element={<AddParsed />} />
           <Route path="import-bulk" element={<ImportBulk />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

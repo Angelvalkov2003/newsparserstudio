@@ -3,23 +3,25 @@ import { useAuth } from '../context/authContext'
 import './LoginPage.css'
 
 export function LoginPage() {
-  const { login, register, loginAsGuest } = useAuth()
+  const { login, loginAsGuest } = useAuth()
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [isRegister, setIsRegister] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
-    const result = isRegister
-      ? await register(name, password)
-      : await login(name, password)
-    setSubmitting(false)
-    if (!result.success) {
-      setError(result.error ?? (isRegister ? 'Registration error.' : 'Login error.'))
+    try {
+      const result = await login(name, password)
+      if (!result.success) {
+        setError(result.error ?? 'Login error.')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Connection error.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -28,10 +30,11 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       await loginAsGuest()
-    } catch {
-      setError('Guest login failed.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Guest login failed.')
+    } finally {
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
   return (
@@ -68,15 +71,7 @@ export function LoginPage() {
           {error && <p className="form-error">{error}</p>}
           <div className="login-actions">
             <button type="submit" className="login-btn login-btn--primary" disabled={submitting}>
-              {submitting ? (isRegister ? 'Registering…' : 'Logging in…') : isRegister ? 'Register' : 'Login'}
-            </button>
-            <button
-              type="button"
-              className="login-btn login-btn--secondary"
-              onClick={() => { setIsRegister((v) => !v); setError(null); }}
-              disabled={submitting}
-            >
-              {isRegister ? 'Back to login' : 'Register (first user only)'}
+              {submitting ? 'Logging in…' : 'Login'}
             </button>
           </div>
         </form>

@@ -1,0 +1,84 @@
+# Starting the app and viewing MongoDB records
+
+## 1. Backend (.env and dependencies)
+
+- `backend/.env` must contain **MONGODB_URI** (Atlas connection string).
+- Database name: default **universal_markdown_builder** (or set `MONGODB_DB_NAME` in `.env`).
+
+Install dependencies (once):
+```powershell
+cd d:\programirane\newsparserstudio\backend
+.\.venv\Scripts\pip install -r requirements.txt
+```
+
+## 2. Starting the backend
+
+**Option A – batch file**
+Double-click:
+```
+backend\start-backend.bat
+```
+Or in terminal:
+```powershell
+cd d:\programirane\newsparserstudio\backend
+.\start-backend.bat
+```
+
+**Option B – manual**
+```powershell
+cd d:\programirane\newsparserstudio\backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Keep the window open. On success you will see: `Application startup complete`.
+
+- API: **http://127.0.0.1:8000**
+- Swagger: **http://127.0.0.1:8000/docs**
+- Health: **http://127.0.0.1:8000/health**
+
+## 3. Adding records (users)
+
+### Via Swagger UI
+1. Open **http://127.0.0.1:8000/docs**
+2. Expand **POST /users**
+3. Click **Try it out**
+4. In the body enter e.g.:
+   ```json
+   {
+     "name": "John",
+     "email": "john@example.com",
+     "age": 25
+   }
+   ```
+5. **Execute** – you will get the new user `id`.
+
+Repeat for more records.
+
+### Via curl
+```powershell
+curl -X POST "http://127.0.0.1:8000/users" -H "Content-Type: application/json" -d "{\"name\":\"Jane\",\"email\":\"jane@example.com\",\"age\":30}"
+```
+
+### View all users via API
+- Browser: **http://127.0.0.1:8000/users**
+- Or Swagger: **GET /users** → Try it out → Execute
+
+## 4. Viewing records in MongoDB (Atlas)
+
+1. Log in at **https://cloud.mongodb.com** and open your project.
+2. Left menu: **Database** → select cluster.
+3. Click **Browse Collections**.
+4. Select database **universal_markdown_builder** (or name from `MONGODB_DB_NAME`).
+5. Open collection **users** – you will see all added users (fields `name`, `email`, `age`, `_id`).
+
+If the database/collection is missing, it is created on first write (e.g. first successful **POST /users**).
+
+## 5. (Optional) Frontend
+
+In a **second** terminal:
+```powershell
+cd d:\programirane\newsparserstudio\frontend
+npm install
+npm run dev
+```
+Open **http://localhost:5173**.

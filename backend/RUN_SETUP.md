@@ -1,43 +1,43 @@
-# Първо стартиране: потребител + bulk import
+# First run: user + bulk import
 
-## 1. Парола за MongoDB в .env
+## 1. MongoDB password in .env
 
-Отвори `backend/.env` и **замени `<db_password>`** с реалната парола на потребителя **angelvalkov03_db_user** от MongoDB Atlas (Database Access → Edit → Password). Това е паролата за Atlas, не за приложението.
+Open `backend/.env` and **replace `<db_password>`** with the real password for user **angelvalkov03_db_user** from MongoDB Atlas (Database Access → Edit → Password). This is the Atlas password, not the app password.
 
-- Ако паролата съдържа **специални символи** (`!`, `@`, `#`, `$`, `%`, `:`, `/`, `?`), трябва да ги кодираш в URI: `!` → `%21`, `@` → `%40`, `#` → `%23`, `$` → `%24`, `%` → `%25`, `:` → `%3A`, `/` → `%2F`, `?` → `%3F`.
-- При грешка "bad auth : authentication failed" провери в Atlas потребителя и паролата (или задай нова парола без специални символи).
+- If the password contains **special characters** (`!`, `@`, `#`, `$`, `%`, `:`, `/`, `?`), encode them in the URI: `!` → `%21`, `@` → `%40`, `#` → `%23`, `$` → `%24`, `%` → `%25`, `:` → `%3A`, `/` → `%2F`, `?` → `%3F`.
+- On "bad auth : authentication failed" check the Atlas user and password (or set a new password without special characters).
 
-Пример (парола без специални символи):
+Example (password without special characters):
 ```
 MONGODB_URI=mongodb+srv://angelvalkov03_db_user:MyRealAtlasPassword123@universalmarkdownbuilde.w2avogu.mongodb.net/?appName=UniversalMarkdownBuilderStudioCluster
 ```
 
-## 2. Стартирай бекенда
+## 2. Start the backend
 
-В терминал:
+In terminal:
 ```powershell
 cd d:\programirane\newsparserstudio\backend
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Остави го да работи (не затваряй прозореца).
+Keep it running (do not close the window).
 
-## 3. Регистрация + bulk import
+## 3. Registration + bulk import
 
-В **нов** терминал:
+In a **new** terminal:
 ```powershell
 cd d:\programirane\newsparserstudio\backend
 python setup_initial_data.py
 ```
 
-Скриптът:
-- регистрира потребител **AngelValkov** с парола **780428Rady!** (роля Admin);
-- импортира `bulk-upload-sporx-two-articles.json` (Sporx + Finans Mynet статии).
+The script:
+- registers user **AngelValkov** with password **780428Rady!** (Admin role);
+- imports `bulk-upload-sporx-two-articles.json` (Sporx + Finans Mynet articles).
 
-## 4. Вход в приложението
+## 4. Log in to the app
 
-Стартирай frontend (ако не работи), отвори приложението и влез с:
+Start the frontend (if not running), open the app and log in with:
 - **Username:** AngelValkov  
 - **Password:** 780428Rady!
 
-След това в MongoDB Atlas → Data Explorer → база **universal_markdown_builder** ще видиш колекциите `users`, `sites`, `pages`, `parsed`.
+Then in MongoDB Atlas → Data Explorer → database **universal_markdown_builder** you will see collections `users`, `sites`, `pages`, `parsed`.

@@ -1,18 +1,17 @@
 """
-App config. Set MONGODB_URI in .env (replace <db_password> with real password).
-Example: mongodb+srv://angelvalkov03_db_user:YOUR_PASSWORD@universalmarkdownbuilde.w2avogu.mongodb.net/?appName=UniversalMarkdownBuilderStudioCluster
+App config. Add env vars here when you set up the new database.
 """
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+_BACKEND_DIR = Path(__file__).resolve().parent
+load_dotenv(_BACKEND_DIR / ".env")
 
-MONGODB_URI = os.getenv(
-    "MONGODB_URI",
-    "mongodb+srv://angelvalkov03_db_user:REPLACE_PASSWORD@universalmarkdownbuilde.w2avogu.mongodb.net/?appName=UniversalMarkdownBuilderStudioCluster",
-)
+# MongoDB Atlas
+MONGODB_URI = os.getenv("MONGODB_URI", "")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "universal_markdown_builder")
+
+# JWT for auth (optional)
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
-
-DB_NAME = "universal_markdown_builder"

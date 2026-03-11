@@ -3,13 +3,14 @@ import {
   setAuthToken,
   authLogin,
   authGuest,
-  authRegister,
+  authGuestResume,
   authMe,
   type UserPublic,
 } from '../api'
 
 const TOKEN_KEY = 'umb_token'
 const USER_KEY = 'umb_current_user'
+const GUEST_ID_KEY = 'umb_guest_id'
 
 export type UserRole = 'admin' | 'regular' | 'guest'
 
@@ -24,7 +25,6 @@ export interface CurrentUser {
 interface AuthContextValue {
   currentUser: CurrentUser | null
   login: (name: string, password: string) => Promise<{ success: boolean; error?: string }>
-  register: (name: string, password: string) => Promise<{ success: boolean; error?: string }>
   loginAsGuest: () => Promise<void>
   logout: () => void
   loading: boolean
@@ -50,11 +50,23 @@ function loadStoredToken(): string | null {
   }
 }
 
-function saveStored(token: string | null, user: CurrentUser | null) {
+function saveStored(token: string | null, user: CurrentUser | null, guestId?: string | null) {
   if (token) localStorage.setItem(TOKEN_KEY, token)
   else localStorage.removeItem(TOKEN_KEY)
   if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
   else localStorage.removeItem(USER_KEY)
+  if (guestId !== undefined) {
+    if (guestId) localStorage.setItem(GUEST_ID_KEY, guestId)
+    else localStorage.removeItem(GUEST_ID_KEY)
+  }
+}
+
+function loadStoredGuestId(): string | null {
+  try {
+    return localStorage.getItem(GUEST_ID_KEY)
+  } catch {
+    return null
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -102,34 +114,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   )
 
-  const register = useCallback(
-    async (name: string, password: string): Promise<{ success: boolean; error?: string }> => {
-      if (!name.trim()) return { success: false, error: 'Enter username.' }
-      if (!password) return { success: false, error: 'Enter password.' }
-      try {
-        const res = await authRegister(name.trim(), password)
-        setAuthToken(res.access_token)
-        const user = userPublicToCurrent(res.user)
-        setCurrentUser(user)
-        saveStored(res.access_token, user)
-        return { success: true }
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Registration failed.'
-        return { success: false, error: msg }
-      }
-    },
-    []
-  )
-
   const loginAsGuest = useCallback(async () => {
+    const savedGuestId = loadStoredGuestId()
     try {
+      if (savedGuestId) {
+        try {
+          const res = await authGuestResume(savedGuestId)
+          setAuthToken(res.access_token)
+          const user = userPublicToCurrent(res.user)
+          setCurrentUser(user)
+          saveStored(res.access_token, user, user.id)
+          return
+        } catch {
+        }
+      }
       const res = await authGuest()
       setAuthToken(res.access_token)
       const user = userPublicToCurrent(res.user)
       setCurrentUser(user)
-      saveStored(res.access_token, user)
+      saveStored(res.access_token, user, user.id)
     } catch {
-      // fallback: local-only guest
       setAuthToken(null)
       setCurrentUser({
         id: 'guest-local',
@@ -137,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: 'guest',
         isGuest: true,
       })
-      saveStored(null, null)
+      saveStored(null, null, null)
     }
   }, [])
 
@@ -150,7 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextValue = {
     currentUser,
     login,
-    register,
     loginAsGuest,
     logout,
     loading,
