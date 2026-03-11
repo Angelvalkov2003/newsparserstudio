@@ -66,8 +66,8 @@ def health():
         db = get_db()
         db.command("ping")
         return {"status": "ok", "mongodb": "connected"}
-    except Exception as e:
-        return {"status": "error", "mongodb": str(e)}
+    except Exception:
+        return {"status": "error", "mongodb": "disconnected"}
 
 
 @app.exception_handler(Exception)
@@ -75,5 +75,5 @@ def catch_all(_request, exc: Exception):
     traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc), "type": type(exc).__name__},
+        content={"detail": "Internal server error"},
     )

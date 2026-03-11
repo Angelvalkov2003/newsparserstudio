@@ -8,10 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGODB_URI = os.getenv(
-    "MONGODB_URI",
-    "mongodb+srv://angel4o2003_db_user:DQnjkra1wv8RdJDC@universalmarkdownbuilde.igvr8ya.mongodb.net/?appName=UniversalMarkdownBuilderStudioCluster",
-)
+MONGODB_URI = os.getenv("MONGODB_URI", "")
 
 DB_NAME = "newsparserstudio"
 
