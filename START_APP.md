@@ -31,8 +31,12 @@ cd d:\programirane\newsparserstudio\backend
 
 Keep the window open. On success you will see: `Application startup complete`.
 
+**After changing backend code:** stop the server (Ctrl+C in the terminal) and start it again using one of the options above. Otherwise you may see 404 for new endpoints (e.g. `/api/pages/special/guest`).
+
 - API: **http://127.0.0.1:8000**
 - Swagger: **http://127.0.0.1:8000/docs**
+
+**Check that the backend is up to date:** open **http://127.0.0.1:8000/api/health**. If you see `"special_routes": true`, the server has endpoints `/api/pages/special/guest` and `/special/unique`. If you get 404 or `special_routes` is missing, restart the backend from the `backend` folder (or check that no other process is using port 8000).
 
 ## 3. Adding records (users)
 

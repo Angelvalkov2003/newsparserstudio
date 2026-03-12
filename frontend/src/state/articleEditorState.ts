@@ -32,7 +32,8 @@ export type ArticleEditorAction =
   | { type: "UPDATE_COMPONENT"; payload: { index: number; component: ArticleComponent } }
   | { type: "ADD_COMPONENT"; payload: ArticleComponent }
   | { type: "DELETE_COMPONENT"; payload: number }
-  | { type: "SET_PREVIEW_MODE"; payload: PreviewMode };
+  | { type: "SET_PREVIEW_MODE"; payload: PreviewMode }
+  | { type: "SET_URL"; payload: string };
 
 function deepCloneParsed(parsed: ArticleDataParsed): ArticleDataCorrected {
   return JSON.parse(JSON.stringify(parsed));
@@ -50,7 +51,7 @@ export function articleEditorReducer(
         data_parsed,
         data_corrected: deepCloneParsed(data_parsed),
         data_corrected_loaded,
-        activePreviewMode: "corrected",
+        activePreviewMode: "original",
       };
     }
 
@@ -114,6 +115,12 @@ export function articleEditorReducer(
         activePreviewMode: action.payload,
       };
 
+    case "SET_URL":
+      return {
+        ...state,
+        url: action.payload,
+      };
+
     default:
       return state;
   }
@@ -126,7 +133,7 @@ const initialState: ArticleEditorState = {
   data_parsed: emptyData(),
   data_corrected: emptyData(),
   data_corrected_loaded: emptyData(),
-  activePreviewMode: "corrected",
+  activePreviewMode: "original",
 };
 
 function defaultMetadata(): ArticleMetadata {

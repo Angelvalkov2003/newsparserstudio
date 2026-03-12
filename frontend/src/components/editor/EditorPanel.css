@@ -68,6 +68,9 @@
   flex-shrink: 0;
   border-top: 1px solid var(--editor-border, #313244);
   background: var(--editor-toolbar-bg, #181825);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .editor-panel-footer .editor-section {
@@ -86,6 +89,12 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
+}
+
+/* Keep Load, Save, Download in one row so Save is always visible */
+.editor-panel-actions .editor-panel-action-btn,
+.editor-panel-actions .app-bottom-bar-input {
+  flex-shrink: 0;
 }
 
 .editor-add-inline {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { Dispatch } from "react";
 import type { ArticleEditorAction } from "../../state/articleEditorState";
 import type { ArticleComponent, ArticleComponentType } from "../../types";
@@ -98,12 +99,13 @@ export function AddComponentByType({
         >
           Add component
         </button>
-        {modalOpen && (
+        {modalOpen && createPortal(
           <div
             className="editor-add-modal-overlay"
             role="dialog"
             aria-modal="true"
             aria-labelledby="editor-add-modal-title"
+            onClick={closeModal}
           >
             <div className="editor-add-modal" onClick={(e) => e.stopPropagation()}>
               <div className="editor-add-modal-header">
@@ -151,7 +153,8 @@ export function AddComponentByType({
                 )}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     );

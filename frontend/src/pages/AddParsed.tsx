@@ -14,7 +14,7 @@ import {
   type UserPublic,
 } from '../api'
 import { refreshSidebar } from '../utils/sidebarRefresh'
-import { useIsAdmin } from '../context/authContext'
+import { useIsAdmin } from '../context'
 
 export function AddParsed() {
   const isAdmin = useIsAdmin()
@@ -96,6 +96,18 @@ export function AddParsed() {
 
   const toggleAllowed = (userId: string) => {
     setAllowedFor((prev) => (prev.includes(userId) ? prev.filter((x) => x !== userId) : [...prev, userId]))
+  }
+
+  const selectAllFromPage = () => {
+    if (!pageId) return
+    const page = pages.find((p) => p.id === pageId)
+    if (!page) return
+    const baseIds = [
+      ...(page.allowed_for ?? []),
+      page.created_by ?? '',
+    ].filter(Boolean)
+    const uniqueIds = Array.from(new Set(baseIds))
+    setAllowedFor(uniqueIds)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -265,6 +277,11 @@ export function AddParsed() {
           <div className="form-group">
             <label>Who can see and use this record</label>
             <div className="form-checkbox-list">
+              <div className="form-checkbox-list-actions">
+                <button type="button" onClick={selectAllFromPage}>
+                  Select all users from page
+                </button>
+              </div>
               {users.filter((u) => !u.is_guest && u.role !== 'admin').map((u) => (
                 <label key={u.id} className="form-checkbox">
                   <input

@@ -1,7 +1,8 @@
 /**
  * API client. All IDs are strings (MongoDB). Auth token sent via getAuthHeaders().
+ * In dev, set VITE_API_ORIGIN=http://127.0.0.1:8000 to call backend directly (avoids proxy issues).
  */
-const API = '/api'
+const API = (import.meta.env.VITE_API_ORIGIN ?? '') + '/api'
 
 export type Site = {
   id: string
@@ -18,7 +19,7 @@ export type Page = {
   id: string
   title: string | null
   url: string
-  site_id: string
+  site_id: string | null
   notes: string | null
   created_by?: string | null
   allowed_for?: string[]
@@ -50,6 +51,7 @@ let onUnauthorized: (() => void) | null = null
 
 export function setAuthToken(token: string | null) {
   authToken = token
+  if (!token) clearSpecialPageCache()
 }
 
 /** Called when any authenticated request gets 401. AuthProvider should clear session and set a message. */
@@ -69,7 +71,7 @@ function getAuthHeadersNoBody(): Record<string, string> {
   return h
 }
 
-const SESSION_EXPIRED_MESSAGE = 'Сесията изтече. Моля, влезте отново.'
+const SESSION_EXPIRED_MESSAGE = 'Session expired. Please log in again.'
 
 /** Authenticated request: on 401 calls onUnauthorized and throws; on other errors throws with body. */
 async function apiRequest(input: RequestInfo, init?: RequestInit): Promise<Response> {
@@ -94,11 +96,13 @@ export async function getSite(id: string): Promise<Site> {
   return r.json()
 }
 
-export async function createSite(name: string, url: string): Promise<Site> {
+export async function createSite(name: string, url: string, allowed_for?: string[]): Promise<Site> {
+  const body: { name: string; url: string; allowed_for?: string[] } = { name, url }
+  if (allowed_for !== undefined) body.allowed_for = allowed_for
   const r = await apiRequest(`${API}/sites`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ name, url }),
+    body: JSON.stringify(body),
   })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -147,6 +151,92 @@ export async function getPage(id: string): Promise<PageWithSite> {
   const r = await apiRequest(`${API}/pages/${id}`, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
+}
+
+const GUEST_PAGE_URL = `${API}/pages/special/guest`
+const UNIQUE_PAGE_URL = `${API}/pages/special/unique`
+
+const UNIQUE_SITE_NAME = 'Unique'
+const UNIQUE_PAGE_TITLE_PREFIX = 'Unique 0 ' // page title: "Unique 0 <username>"
+const UNIQUE_PAGE_TITLE_LEGACY_PREFIX = 'Unique - ' // "Unique - <username>" (guest and legacy)
+
+let cachedGuestPagePromise: Promise<PageWithSite | null> | null = null
+let cachedUniquePagePromise: Promise<PageWithSite | null> | null = null
+
+export function clearSpecialPageCache() {
+  cachedGuestPagePromise = null
+  cachedUniquePagePromise = null
+}
+
+/** Find the site named "Unique" (one website for all unique pages). */
+export async function findUniqueSite(): Promise<Site | null> {
+  const sites = await fetchSites()
+  return sites.find((s) => s.name === UNIQUE_SITE_NAME) ?? null
+}
+
+/** Find a page in the Unique site by exact title. Returns null if not found. */
+export async function findPageInUniqueSiteByTitle(title: string): Promise<PageWithSite | null> {
+  const site = await findUniqueSite()
+  if (!site?.id) return null
+  const pages = await fetchPages(site.id)
+  return pages.find((p) => p.title === title) ?? null
+}
+
+/** Find the user's Unique page by title "Unique 0 <username>" or legacy "Unique - <username>". */
+export async function findUniquePageByUsername(username: string): Promise<PageWithSite | null> {
+  if (!username) return null
+  const site = await findUniqueSite()
+  if (!site?.id) return null
+  const pages = await fetchPages(site.id)
+  const title0 = UNIQUE_PAGE_TITLE_PREFIX + username
+  const titleLegacy = UNIQUE_PAGE_TITLE_LEGACY_PREFIX + username
+  return pages.find((p) => p.title === title0 || p.title === titleLegacy) ?? null
+}
+
+/** Guest only: get or create the single guest page under Unique site (title "Unique - <username>"). On 404, tries to find existing page by username. Pass username for fallback. Cached per session. */
+export async function getGuestPage(username?: string): Promise<PageWithSite | null> {
+  if (cachedGuestPagePromise) return cachedGuestPagePromise
+  const run = async (): Promise<PageWithSite | null> => {
+    const r = await apiRequest(GUEST_PAGE_URL, { headers: getAuthHeadersNoBody() })
+    if (r.status === 404) {
+      if (username) return findUniquePageByUsername(username)
+      return null
+    }
+    if (!r.ok) {
+      const text = await r.text()
+      console.error('[API] GET /api/pages/special/guest →', r.status, text)
+      throw new Error(text || `Error ${r.status}`)
+    }
+    return r.json()
+  }
+  cachedGuestPagePromise = run().catch((e) => {
+    cachedGuestPagePromise = null
+    throw e
+  })
+  return cachedGuestPagePromise
+}
+
+/** Regular/admin: get or create the 'Unique 0 <username>' page under Unique site. On 404, tries to find existing page with title "Unique 0 <username>" in Unique site. Pass username for fallback. Cached per session. */
+export async function getUniquePage(username?: string): Promise<PageWithSite | null> {
+  if (cachedUniquePagePromise) return cachedUniquePagePromise
+  const run = async (): Promise<PageWithSite | null> => {
+    const r = await apiRequest(UNIQUE_PAGE_URL, { headers: getAuthHeadersNoBody() })
+    if (r.status === 404) {
+      if (username) return findUniquePageByUsername(username)
+      return null
+    }
+    if (!r.ok) {
+      const text = await r.text()
+      console.error('[API] GET /api/pages/special/unique →', r.status, text)
+      throw new Error(text || `Error ${r.status}`)
+    }
+    return r.json()
+  }
+  cachedUniquePagePromise = run().catch((e) => {
+    cachedUniquePagePromise = null
+    throw e
+  })
+  return cachedUniquePagePromise
 }
 
 export async function createPage(
@@ -211,6 +301,7 @@ export async function fetchParsed(
 }
 
 export async function getParsed(id: string): Promise<ParsedWithPage> {
+  if (id === 'url' || !id?.trim()) throw new Error('Invalid parsed id')
   const r = await apiRequest(`${API}/parsed/${id}`, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -434,7 +525,7 @@ export async function createUser(
 
 export async function updateUser(
   userId: string,
-  updates: { role?: string }
+  updates: { username?: string; password?: string; role?: string }
 ): Promise<UserPublic> {
   const r = await apiRequest(`${API}/users/${userId}`, {
     method: 'PATCH',
@@ -444,4 +535,12 @@ export async function updateUser(
   const text = await r.text()
   if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Update failed')
   return JSON.parse(text) as UserPublic
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  const r = await apiRequest(`${API}/users/${userId}`, {
+    method: 'DELETE',
+    headers: getAuthHeadersNoBody(),
+  })
+  if (!r.ok) throw new Error(await r.text())
 }

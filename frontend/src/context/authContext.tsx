@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   setAuthToken,
   setOnUnauthorized,
@@ -28,12 +28,12 @@ interface AuthContextValue {
   loginAsGuest: () => Promise<void>
   logout: () => void
   loading: boolean
-  /** Shown on login page after 401 (e.g. "Сесията изтече. Моля, влезте отново."). */
+  /** Shown on login page after 401 (e.g. "Session expired. Please log in again."). */
   sessionExpiredMessage: string | null
   clearSessionExpiredMessage: () => void
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null)
+export const AuthContext = createContext<AuthContextValue | null>(null)
 
 function userPublicToCurrent(u: UserPublic): CurrentUser {
   return {
@@ -71,7 +71,7 @@ function loadStoredGuestId(): string | null {
   }
 }
 
-const SESSION_EXPIRED_TEXT = 'Сесията изтече. Моля, влезте отново.'
+const SESSION_EXPIRED_TEXT = 'Session expired. Please log in again.'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
@@ -182,19 +182,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
-}
-
-export function useCurrentUser(): CurrentUser | null {
-  return useAuth().currentUser
-}
-
-export function useIsAdmin(): boolean {
-  const user = useCurrentUser()
-  return user?.role === 'admin'
 }

@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider, useAuth } from './context/authContext'
+import { AuthProvider, useAuth } from './context'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { EditorPage } from './pages/EditorPage'
 import { AddSite } from './pages/AddSite'
+import { PagesPage } from './pages/PagesPage'
 import { AddPage } from './pages/AddPage'
 import { AddParsed } from './pages/AddParsed'
 import { ImportBulk } from './pages/ImportBulk'
@@ -29,7 +30,7 @@ function AppRoutes() {
         <Route path="/" element={<Layout />}>
           <Route index element={<EditorPage />} />
           <Route path="sites" element={<AddSite />} />
-          <Route path="pages" element={<AddPage />} />
+          <Route path="pages" element={<PagesPage />} />
           <Route path="parsed" element={<AddParsed />} />
           <Route path="import-bulk" element={<ImportBulk />} />
           <Route path="users" element={<UsersPage />} />

@@ -1,110 +1,91 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  fetchSites,
-  fetchPages,
-  getPage,
-  createPage,
-  updatePage,
-  deletePage,
-  fetchUsers,
-  type Site,
+  getUniquePage,
+  fetchParsed,
+  createParsed,
+  deleteParsed,
   type PageWithSite,
-  type UserPublic,
+  type ParsedWithPage,
 } from '../api'
 import { refreshSidebar } from '../utils/sidebarRefresh'
-import { useIsAdmin } from '../context/authContext'
+import { useCurrentUser } from '../context'
+import { getEmptyParsed } from '../state/articleEditorState'
+import './AddPage.css'
+
+function buildMinimalParsedData(title: string, url?: string): string {
+  const meta = { ...getEmptyParsed().metadata, title: title || '' }
+  const data = {
+    ...getEmptyParsed(),
+    metadata: meta,
+    ...(url && url.trim() ? { sourceUrl: url.trim() } : {}),
+  }
+  return JSON.stringify(data)
+}
 
 export function AddPage() {
-  const isAdmin = useIsAdmin()
-  const [sites, setSites] = useState<Site[]>([])
-  const [list, setList] = useState<PageWithSite[]>([])
-  const [users, setUsers] = useState<UserPublic[]>([])
+  const navigate = useNavigate()
+  const currentUser = useCurrentUser()
+  const isGuest = currentUser?.role === 'guest' || currentUser?.isGuest === true
+
+  const [myPage, setMyPage] = useState<PageWithSite | null>(null)
+  const [list, setList] = useState<ParsedWithPage[]>([])
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
   const [notes, setNotes] = useState('')
-  const [siteId, setSiteId] = useState<string>('')
-  const [allowedFor, setAllowedFor] = useState<string[]>([])
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [filterSiteId, setFilterSiteId] = useState<string>('')
-  const [filterCreatedBy, setFilterCreatedBy] = useState<string>('')
-  const [filterDateFrom, setFilterDateFrom] = useState<string>('')
-  const [filterDateTo, setFilterDateTo] = useState<string>('')
+  const [rightUrl, setRightUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
-  const load = async () => {
+  const loadPage = async () => {
+    if (isGuest) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
-      const [sitesData, pagesData, usersRes] = await Promise.all([
-        fetchSites(),
-        fetchPages(),
-        isAdmin ? fetchUsers() : Promise.resolve([]),
-      ])
-      setSites(sitesData)
-      setList(pagesData)
-      setUsers(usersRes)
-      if (sitesData.length && siteId === '' && editingId == null) setSiteId(sitesData[0].id)
+      const page = await getUniquePage(currentUser?.name)
+      setMyPage(page ?? null)
+      return page ?? null
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error loading data')
+      setError(e instanceof Error ? e.message : 'Error loading page')
+      setMyPage(null)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    load()
-  }, [isAdmin])
-
-  const resetForm = () => {
-    setTitle('')
-    setUrl('')
-    setNotes('')
-    setSiteId(sites.length ? sites[0].id : '')
-    setAllowedFor([])
-    setEditingId(null)
-    setError(null)
-  }
-
-  const handleEdit = async (id: string) => {
+  const loadParsed = async (pageId: string) => {
     try {
-      const page = await getPage(id)
-      setTitle(page.title ?? '')
-      setUrl(page.url)
-      setNotes(page.notes ?? '')
-      setSiteId(page.site_id)
-      setAllowedFor(page.allowed_for ?? [])
-      setEditingId(id)
-      setError(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error loading page')
+      const data = await fetchParsed(pageId)
+      setList(data)
+    } catch {
+      setList([])
     }
   }
 
-  const toggleAllowed = (userId: string) => {
-    setAllowedFor((prev) => (prev.includes(userId) ? prev.filter((x) => x !== userId) : [...prev, userId]))
-  }
+  useEffect(() => {
+    loadPage().then((page) => {
+      if (page?.id) loadParsed(page.id)
+    })
+  }, [isGuest])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (siteId === '') {
-      setError('Select a site')
-      return
-    }
+    if (!myPage?.id) return
     setError(null)
     setSubmitting(true)
     try {
-      if (editingId != null) {
-        await updatePage(editingId, title.trim() || null, url.trim(), siteId, isAdmin ? allowedFor : undefined, notes.trim() || null)
-        resetForm()
-      } else {
-        await createPage(title.trim() || null, url.trim(), siteId, notes.trim() || null)
-        setTitle('')
-        setUrl('')
-        setNotes('')
-      }
-      load()
+      const linkUrl = rightUrl.trim() || url.trim()
+      const dataStr = buildMinimalParsedData(title.trim() || linkUrl || 'Untitled', linkUrl || undefined)
+      await createParsed(myPage.id, title.trim() || null, dataStr, notes.trim() || null, false, notes.trim() || null)
+      setTitle('')
+      setUrl('')
+      setNotes('')
+      setRightUrl('')
+      await loadParsed(myPage.id)
       refreshSidebar()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error saving')
@@ -114,213 +95,133 @@ export function AddPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this page? All related parsed records will be removed.')) return
+    if (!window.confirm('Delete this article?')) return
     setError(null)
     try {
-      await deletePage(id)
-      if (editingId === id) resetForm()
-      load()
+      await deleteParsed(id)
+      if (myPage?.id) await loadParsed(myPage.id)
       refreshSidebar()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error deleting')
     }
   }
 
+  const openInEditor = (pageId: string) => {
+    navigate(`/?pageId=${pageId}`)
+  }
+
   const filteredList = list.filter((p) => {
-    const matchSite = !filterSiteId || p.site_id === filterSiteId
-    const matchCreatedBy = !filterCreatedBy || p.created_by === filterCreatedBy
-    const dateStr = p.created_at ? p.created_at.slice(0, 10) : ''
-    const matchDateFrom = !filterDateFrom || dateStr >= filterDateFrom
-    const matchDateTo = !filterDateTo || dateStr <= filterDateTo
     const q = search.trim().toLowerCase()
-    const matchSearch =
-      !q ||
-      (p.title ?? '').toLowerCase().includes(q) ||
-      p.url.toLowerCase().includes(q) ||
-      (p.site_name ?? '').toLowerCase().includes(q) ||
-      (p.notes ?? '').toLowerCase().includes(q)
-    return matchSite && matchCreatedBy && matchDateFrom && matchDateTo && matchSearch
+    if (!q) return true
+    const name = (p.name ?? '').toLowerCase()
+    const info = (p.info ?? '').toLowerCase()
+    const pageUrl = (p.page_url ?? '').toLowerCase()
+    return name.includes(q) || info.includes(q) || pageUrl.includes(q)
   })
 
-  return (
-    <div className="form-page">
-      <h1>{editingId != null ? 'Edit page (article)' : 'Add page (article)'}</h1>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="page-site">Site</label>
-          <select
-            id="page-site"
-            value={siteId}
-            onChange={(e) => setSiteId(e.target.value)}
-            required
-          >
-            <option value="">— Select site —</option>
-            {sites.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor="page-title">Title (optional)</label>
-          <input
-            id="page-title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Article title"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="page-url">URL</label>
-          <input
-            id="page-url"
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            required
-            placeholder="https://..."
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="page-notes">Notes (internal)</label>
-          <textarea
-            id="page-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Internal notes or comments..."
-            rows={2}
-            className="form-input"
-          />
-        </div>
-        {isAdmin && editingId != null && users.length > 0 && (
-          <div className="form-group">
-            <label>Who can see and use this page</label>
-            <div className="form-checkbox-list">
-              {users.filter((u) => !u.is_guest && u.role !== 'admin').map((u) => (
-                <label key={u.id} className="form-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={allowedFor.includes(u.id)}
-                    onChange={() => toggleAllowed(u.id)}
-                  />
-                  {u.username}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-        {error && <p className="form-error">{error}</p>}
-        <div className="form-actions">
-          <button type="submit" className="primary" disabled={submitting}>
-            {submitting ? 'Saving…' : editingId != null ? 'Update page' : 'Add page'}
-          </button>
-          {editingId != null && (
-            <button type="button" onClick={resetForm}>
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
+  if (isGuest) {
+    return (
+      <div className="form-page">
+        <h1>Add page (article)</h1>
+        <p>Guests use the Editor to add articles.</p>
+      </div>
+    )
+  }
 
-      <section className="list-section">
-        <h2>Existing pages (articles)</h2>
-        <div className="list-section-filters">
+  return (
+    <div className="add-page-layout">
+      <div className="add-page-left">
+        <h1>Add page (article)</h1>
+        <p className="add-page-uniq-hint">Articles are saved to your Unique page.</p>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="page-title">Title (optional)</label>
+            <input
+              id="page-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Article title"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="page-url">URL</label>
+            <input
+              id="page-url"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="page-notes">Notes (internal)</label>
+            <textarea
+              id="page-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Internal notes..."
+              rows={2}
+              className="form-input"
+            />
+          </div>
+          {error && <p className="form-error">{error}</p>}
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={submitting || !myPage}>
+              {submitting ? 'Saving…' : 'Add article'}
+            </button>
+          </div>
+        </form>
+
+        <section className="list-section">
+          <h2>Existing articles (Unique page)</h2>
           <input
             type="search"
-            placeholder="Search by title, URL or site..."
+            placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="list-section-search"
           />
-          <select
-            value={filterSiteId}
-            onChange={(e) => setFilterSiteId(e.target.value)}
-            className="list-section-filter"
-            aria-label="Filter by site"
-          >
-            <option value="">All sites</option>
-            {sites.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          {isAdmin && users.length > 0 && (
-            <select
-              value={filterCreatedBy}
-              onChange={(e) => setFilterCreatedBy(e.target.value)}
-              className="list-section-filter"
-              aria-label="Filter by creator"
-            >
-              <option value="">All users</option>
-              {users.filter((u) => !u.is_guest).map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.username}
-                </option>
-              ))}
-            </select>
-          )}
-          <input
-            type="date"
-            value={filterDateFrom}
-            onChange={(e) => setFilterDateFrom(e.target.value)}
-            className="list-section-filter list-section-date"
-            aria-label="Date from"
-            title="Created from"
-          />
-          <input
-            type="date"
-            value={filterDateTo}
-            onChange={(e) => setFilterDateTo(e.target.value)}
-            className="list-section-filter list-section-date"
-            aria-label="Date to"
-            title="Created to"
-          />
-        </div>
-        {loading ? (
-          <p>Loading…</p>
-        ) : filteredList.length === 0 ? (
-          <p>{list.length === 0 ? 'No pages yet.' : 'No results for your search or filter.'}</p>
-        ) : (
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {filteredList.map((p) => (
-              <li key={p.id} className="list-item list-item--crud">
-                <div>
-                  <strong>{p.title || p.url}</strong>
-                  {p.site_name && (
-                    <>
-                      <br />
-                      <small>Site: {p.site_name}</small>
-                    </>
-                  )}
-                  <br />
-                  <small>{p.url}</small>
-                  {p.notes && (
-                    <>
-                      <br />
-                      <small className="list-item-notes">Notes: {p.notes}</small>
-                    </>
-                  )}
-                  <div className="list-item-meta">
-                    <span title="Creator">By: {p.created_by_username ?? p.created_by ?? '—'}</span>
-                    <span title="Who has access">Access: {[...new Set([p.created_by_username ?? p.created_by, ...(p.allowed_for_usernames ?? p.allowed_for ?? [])].filter(Boolean))].join(', ') || '—'}</span>
+          {loading ? (
+            <p>Loading…</p>
+          ) : filteredList.length === 0 ? (
+            <p>{list.length === 0 ? 'No articles yet.' : 'No results.'}</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {filteredList.map((p) => (
+                <li key={p.id} className="list-item list-item--crud">
+                  <div>
+                    <strong>{p.name || p.page_title || 'Untitled'}</strong>
+                    <br />
+                    <small>{p.page_url || p.created_at}</small>
                   </div>
-                </div>
-                <div className="list-item-actions">
-                  <button type="button" onClick={() => handleEdit(p.id)}>
-                    Edit
-                  </button>
-                  <button type="button" className="danger" onClick={() => handleDelete(p.id)}>
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  <div className="list-item-actions">
+                    <button type="button" onClick={() => myPage && openInEditor(myPage.id)}>
+                      Open in Editor
+                    </button>
+                    <button type="button" className="danger" onClick={() => handleDelete(p.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <aside className="add-page-right">
+        <label className="add-page-right-label">
+          <span>Link (URL)</span>
+          <input
+            type="url"
+            className="add-page-url-input"
+            value={rightUrl}
+            onChange={(e) => setRightUrl(e.target.value)}
+            placeholder="https://..."
+          />
+        </label>
+      </aside>
     </div>
   )
 }

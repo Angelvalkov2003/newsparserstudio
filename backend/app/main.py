@@ -37,10 +37,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[],
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 api_router = APIRouter(prefix="/api")
@@ -56,6 +58,16 @@ app.include_router(api_router)
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Universal Markdown Builder Studio API"}
+
+
+@api_router.get("/health")
+def health():
+    """If you see special_routes: true, the backend serves /api/pages/special/guest and /special/unique."""
+    return {
+        "status": "ok",
+        "version": "0.4.0",
+        "special_routes": True,
+    }
 
 
 @app.exception_handler(Exception)

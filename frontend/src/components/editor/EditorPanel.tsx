@@ -29,6 +29,9 @@ interface EditorPanelProps {
   onSaveParsed?: () => void;
   savingParsed?: boolean;
   onDownloadCurrentParsed?: () => void;
+  showSaveAsUnique?: boolean;
+  onSaveAsUnique?: () => void;
+  savingAsUnique?: boolean;
 }
 
 export function EditorPanel({
@@ -49,6 +52,9 @@ export function EditorPanel({
   onSaveParsed,
   savingParsed = false,
   onDownloadCurrentParsed,
+  showSaveAsUnique = false,
+  onSaveAsUnique,
+  savingAsUnique = false,
 }: EditorPanelProps) {
   const { data_corrected } = state;
   const loadInputRef = useRef<HTMLInputElement>(null);
@@ -100,7 +106,7 @@ export function EditorPanel({
               value={selectedUnverifiedId ?? ""}
               onChange={(e) => {
                 const v = e.target.value;
-                onSelectUnverified(v === "" ? null : Number(v));
+                onSelectUnverified(v === "" ? null : v);
               }}
               disabled={loadingParsed}
               aria-label="Select unverified parsed"
@@ -148,6 +154,24 @@ export function EditorPanel({
           >
             Load
           </button>
+          <button
+            type="button"
+            className="editor-panel-action-btn"
+            onClick={onSaveAsUnique ?? undefined}
+            disabled={savingAsUnique || !onSaveAsUnique}
+            title="Save document to Unique (website Unique, page Unique 0 your name)"
+          >
+            {savingAsUnique ? "Saving…" : "Save"}
+          </button>
+          {onDownloadCurrentParsed && (
+            <button
+              type="button"
+              className="editor-panel-action-btn"
+              onClick={onDownloadCurrentParsed}
+            >
+              Download
+            </button>
+          )}
           {showVerify && (
             <button
               type="button"
@@ -165,16 +189,7 @@ export function EditorPanel({
               onClick={onSaveParsed}
               disabled={saveParsedDisabled || savingParsed}
             >
-              {savingParsed ? "Saving…" : "Save"}
-            </button>
-          )}
-          {onDownloadCurrentParsed && (
-            <button
-              type="button"
-              className="editor-panel-action-btn"
-              onClick={onDownloadCurrentParsed}
-            >
-              Download
+              {savingParsed ? "Saving…" : "Save to page"}
             </button>
           )}
         </div>

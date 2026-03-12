@@ -89,6 +89,7 @@ export function ChipList({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+            onBlur={() => { if (newName.trim()) add(); }}
             placeholder={namePlaceholder ?? placeholder}
             aria-label={`Add ${label.toLowerCase()} name`}
           />
@@ -98,6 +99,7 @@ export function ChipList({
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+            onBlur={() => { if (newName.trim()) add(); }}
             placeholder={linkPlaceholder}
             aria-label={`Add ${label.toLowerCase()} link`}
           />

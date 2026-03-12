@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useArticleEditor } from '../state/articleEditorState'
 import { buildLoadPayload, getEmptyParsed } from '../state/articleEditorState'
 import { EditorPanel } from '../components/editor'
 import { PreviewPanel } from '../components/preview'
-import { getPage, getParsed, fetchParsed, createParsed, updateParsed, type PageWithSite, type ParsedWithPage } from '../api'
+import { getPage, getParsed, fetchParsed, createParsed, updateParsed, getGuestPage, getUniquePage, type PageWithSite, type ParsedWithPage } from '../api'
+import { useCurrentUser } from '../context'
 import { parseDataParsedLike, type ParseArticleFileResult } from '../components/editor/UploadArticleButton'
 import { downloadParsedFile } from '../utils/downloadCorrectedJson'
 import { refreshSidebar } from '../utils/sidebarRefresh'
@@ -20,9 +21,15 @@ function sortByUpdatedAtDesc(a: ParsedWithPage, b: ParsedWithPage): number {
 
 export function EditorPage() {
   const [state, dispatch] = useArticleEditor()
+  const currentUser = useCurrentUser()
+  const isGuest = currentUser?.role === 'guest' || currentUser?.isGuest === true
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const pageIdParam = searchParams.get('pageId')
-  const pageId = pageIdParam || null
+  const [guestPage, setGuestPage] = useState<PageWithSite | null>(null)
+  const [uniquePage, setUniquePage] = useState<PageWithSite | null>(null)
+  const pageIdFromUrl = pageIdParam || null
+  const pageId = isGuest ? (guestPage?.id ?? null) : (pageIdFromUrl || (uniquePage?.id ?? null))
 
   const [page, setPage] = useState<PageWithSite | null>(null)
   const [unverifiedList, setUnverifiedList] = useState<ParsedWithPage[]>([])
@@ -33,7 +40,7 @@ export function EditorPage() {
   const [loadingParsed, setLoadingParsed] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [, setBarError] = useState<string | null>(null)
+  const [barError, setBarError] = useState<string | null>(null)
   const [leftPercent, setLeftPercent] = useState(50)
   const [dragging, setDragging] = useState(false)
   const editorRowRef = useRef<HTMLDivElement>(null)
@@ -67,7 +74,32 @@ export function EditorPage() {
     }
   }, [dragging, handleResizeMove, handleResizeEnd])
 
-  // Fetch page and parsed when pageId is set
+  // Guest: fetch guest page once (only when we have a logged-in guest user)
+  useEffect(() => {
+    if (!currentUser || !isGuest) {
+      setGuestPage(null)
+      return
+    }
+    getGuestPage(currentUser?.name)
+      .then((p) => setGuestPage(p ?? null))
+      .catch(() => setGuestPage(null))
+  }, [currentUser, isGuest])
+
+  // Non-guest: fetch Unique page for Save button and default pageId (only when we have a logged-in user)
+  useEffect(() => {
+    if (!currentUser || isGuest) {
+      setUniquePage(null)
+      return
+    }
+    getUniquePage(currentUser?.name)
+      .then((p) => { setUniquePage(p ?? null); setBarError(null) })
+      .catch((e) => {
+        setUniquePage(null)
+        setBarError(e instanceof Error ? e.message : 'Page could not be loaded. Restart the backend.')
+      })
+  }, [currentUser, isGuest])
+
+  // Fetch page and parsed when pageId is set (from URL or guest page)
   useEffect(() => {
     if (!pageId) {
       setPage(null)
@@ -108,14 +140,22 @@ export function EditorPage() {
       })
   }, [pageId])
 
-  // Load selected unverified parsed into editor
+  // Load selected unverified parsed into editor (URL from DB sourceUrl if present)
   const loadUnverifiedIntoEditor = useCallback(
     (parsedId: string, pageUrl: string) => {
       getParsed(parsedId)
         .then((r) => {
           let data: ArticleDataParsed
+          let urlFromData = pageUrl
           try {
-            const raw = JSON.parse(r.data)
+            const raw = JSON.parse(r.data) as Record<string, unknown>
+            if (raw && typeof raw.sourceUrl === 'string') {
+              const u = raw.sourceUrl.trim()
+              if (u) urlFromData = u
+            } else if (raw?.metadata && typeof (raw.metadata as Record<string, unknown>).sourceUrl === 'string') {
+              const u = ((raw.metadata as Record<string, unknown>).sourceUrl as string).trim()
+              if (u) urlFromData = u
+            }
             const parsed = parseDataParsedLike(raw)
             data = parsed ?? getEmptyParsed()
           } catch {
@@ -124,7 +164,7 @@ export function EditorPage() {
           dispatch({
             type: 'LOAD_ARTICLE',
             payload: buildLoadPayload({
-              url: pageUrl,
+              url: urlFromData,
               data_parsed: data,
               data_corrected: null,
             }),
@@ -167,7 +207,8 @@ export function EditorPage() {
     if (!pageId || !page) return
     setBarError(null)
     setVerifying(true)
-    const dataStr = JSON.stringify(state.data_corrected)
+    const payload = { ...state.data_corrected, sourceUrl: state.url || '' }
+    const dataStr = JSON.stringify(payload)
     const name = state.data_corrected.metadata?.title?.trim() || 'Verified copy'
     createParsed(pageId, name, dataStr, null, true)
       .then((newParsed) => {
@@ -183,8 +224,10 @@ export function EditorPage() {
     if (!pageId) return
     setBarError(null)
     setSaving(true)
-    const dataStr = JSON.stringify(state.data_corrected)
-    // Save to the working copy (unverified) we are editing, so added components persist
+    const payload = { ...state.data_corrected, sourceUrl: state.url || '' }
+    const dataStr = JSON.stringify(payload)
+    const name = state.data_corrected.metadata?.title?.trim() || null
+    // Save to the working copy (unverified) we are editing
     if (selectedUnverifiedId != null) {
       const unverified = unverifiedList.find((p) => p.id === selectedUnverifiedId)
       if (!unverified) {
@@ -197,7 +240,7 @@ export function EditorPage() {
         .finally(() => setSaving(false))
       return
     }
-    // Or save to the selected verified reference
+    // Save to the selected verified reference
     if (typeof selectedReference === 'string') {
       const verified = verifiedList.find((p) => p.id === selectedReference)
       if (!verified) {
@@ -208,9 +251,17 @@ export function EditorPage() {
         .then(() => { refetchParsed(); refreshSidebar() })
         .catch((e) => setBarError(e instanceof Error ? e.message : 'Save failed'))
         .finally(() => setSaving(false))
-    } else {
-      setSaving(false)
+      return
     }
+    // No working copy selected (e.g. guest or new): create new unverified parsed
+    createParsed(pageId, name, dataStr, null, false)
+      .then((newParsed) => {
+        refetchParsed()
+        refreshSidebar()
+        setSelectedUnverifiedId(newParsed.id)
+      })
+      .catch((e) => setBarError(e instanceof Error ? e.message : 'Save failed'))
+      .finally(() => setSaving(false))
   }, [pageId, selectedUnverifiedId, selectedReference, unverifiedList, verifiedList, state.data_corrected, refetchParsed])
 
   const handleDownloadCurrentParsed = useCallback(() => {
@@ -220,8 +271,46 @@ export function EditorPage() {
     })
   }, [state.url, state.data_corrected])
 
+  const handleSaveAsUnique = useCallback(() => {
+    if (!currentUser) return
+    setBarError(null)
+    setSaving(true)
+    const doSave = (targetPage: PageWithSite) => {
+      const payload = { ...state.data_corrected, sourceUrl: state.url || '' }
+      const dataStr = JSON.stringify(payload)
+      const uniqueName = `Unique 0 ${currentUser.name || (isGuest ? 'Guest' : 'User')}`
+      return createParsed(targetPage.id, uniqueName, dataStr, null, false)
+        .then((newParsed) => {
+          refreshSidebar()
+          if (pageId === targetPage.id) {
+            refetchParsed()
+            setSelectedUnverifiedId(newParsed.id)
+          } else {
+            navigate(`/?pageId=${targetPage.id}`)
+          }
+        })
+    }
+    const targetPage = isGuest ? guestPage : uniquePage
+    if (targetPage?.id) {
+      doSave(targetPage).catch((e) => setBarError(e instanceof Error ? e.message : 'Save failed')).finally(() => setSaving(false))
+      return
+    }
+    (isGuest ? getGuestPage(currentUser?.name) : getUniquePage(currentUser?.name))
+      .then((p) => {
+        if (isGuest) setGuestPage(p)
+        else setUniquePage(p)
+        if (!p?.id) {
+          setBarError('Page not available.')
+          return
+        }
+        return doSave(p)
+      })
+      .catch((e) => setBarError(e instanceof Error ? e.message : 'Save failed'))
+      .finally(() => setSaving(false))
+  }, [isGuest, guestPage, uniquePage, currentUser, pageId, state.data_corrected, state.url, refetchParsed])
+
   const handleDownloadReference = useCallback(() => {
-    if (typeof selectedReference !== 'string' || !page) return
+    if (typeof selectedReference !== 'string' || selectedReference === 'url' || !page) return
     getParsed(selectedReference)
       .then((r) => {
         const raw = JSON.parse(r.data)
@@ -246,7 +335,8 @@ export function EditorPage() {
       if (!pageId) return
       const data = parsed.data_parsed ?? parsed.data_corrected
       if (!data) return
-      const dataStr = JSON.stringify(data)
+      const payload = { ...data, sourceUrl: parsed.url || '' }
+      const dataStr = JSON.stringify(payload)
       const name = parsed.name ?? (data.metadata?.title?.trim()) ?? null
       const info = parsed.info ?? null
       const isVerified = parsed.is_verified ?? false
@@ -259,6 +349,14 @@ export function EditorPage() {
 
   return (
     <div className="app-layout app-layout--in-router" style={{ height: '100%' }}>
+      {barError && (
+        <div className="app-editor-bar-error" role="alert">
+          {barError}
+          <button type="button" className="app-editor-bar-error-dismiss" onClick={() => setBarError(null)} aria-label="Close">
+            ×
+          </button>
+        </div>
+      )}
       <div className="app-editor-row" ref={editorRowRef}>
         <aside
           className="app-left"
@@ -278,10 +376,13 @@ export function EditorPage() {
             onVerify={handleVerify}
             verifying={verifying}
             showSaveParsed={pageId != null}
-            saveParsedDisabled={selectedUnverifiedId == null && typeof selectedReference !== 'string'}
+            saveParsedDisabled={false}
             onSaveParsed={handleSaveParsed}
             savingParsed={saving}
             onDownloadCurrentParsed={handleDownloadCurrentParsed}
+            showSaveAsUnique={(isGuest ? guestPage : uniquePage) != null}
+            onSaveAsUnique={handleSaveAsUnique}
+            savingAsUnique={saving}
           />
         </aside>
         <div

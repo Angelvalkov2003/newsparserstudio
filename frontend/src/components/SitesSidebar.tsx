@@ -5,13 +5,14 @@ import {
   fetchPages,
   fetchParsed,
   getPage,
+  getGuestPage,
   fetchUsers,
   type Site,
   type PageWithSite,
   type ParsedWithPage,
   type UserPublic,
 } from '../api'
-import { useIsAdmin } from '../context/authContext'
+import { useIsAdmin, useCurrentUser } from '../context'
 import './SitesSidebar.css'
 
 function matchSearch(text: string, q: string): boolean {
@@ -22,12 +23,17 @@ function matchSearch(text: string, q: string): boolean {
 
 import { REFRESH_SIDEBAR_EVENT } from '../utils/sidebarRefresh'
 
+const GUEST_SITE_ID = 'guest'
+
 export function SitesSidebar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const currentUser = useCurrentUser()
+  const isGuest = currentUser?.role === 'guest' || currentUser?.isGuest === true
   const isAdmin = useIsAdmin()
   const [searchParams, setSearchParams] = useSearchParams()
   const [sites, setSites] = useState<Site[]>([])
+  const [guestPage, setGuestPage] = useState<PageWithSite | null>(null)
   const [users, setUsers] = useState<UserPublic[]>([])
   const [adminFilterUserId, setAdminFilterUserId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -38,29 +44,61 @@ export function SitesSidebar() {
   const [loading, setLoading] = useState(true)
   const [loadingPages, setLoadingPages] = useState<string | null>(null)
   const [loadingParsed, setLoadingParsed] = useState<string | null>(null)
+  const [guestPageError, setGuestPageError] = useState<string | null>(null)
 
-  // Sync from URL: when pageId is in URL, expand site and select page, load pages + parsed
+  // Guest: load guest page once (only when we have a logged-in guest user)
   useEffect(() => {
+    if (!currentUser || !isGuest) {
+      setGuestPage(null)
+      setGuestPageError(null)
+      return
+    }
+    setLoading(true)
+    setGuestPageError(null)
+    getGuestPage(currentUser?.name)
+      .then((p) => {
+        setGuestPage(p)
+        if (p) {
+          setPagesBySite((prev) => ({ ...prev, [GUEST_SITE_ID]: [p] }))
+          setExpandedSiteId(GUEST_SITE_ID)
+          setSelectedPageId(p.id)
+          navigate(`/?pageId=${p.id}`)
+          return fetchParsed(p.id).then((parsed) => {
+            setParsedByPage((prev) => ({ ...prev, [p.id]: parsed ?? [] }))
+          })
+        }
+      })
+      .catch(() => {
+        setGuestPage(null)
+        setGuestPageError('Page could not be loaded. Restart the backend and refresh.')
+      })
+      .finally(() => setLoading(false))
+  }, [currentUser, isGuest])
+
+  // Sync from URL: when pageId is in URL, expand site and select page, load pages + parsed (non-guest)
+  useEffect(() => {
+    if (isGuest) return
     const pageIdParam = searchParams.get('pageId')
     if (!pageIdParam) return
     let cancelled = false
     getPage(pageIdParam)
       .then((page) => {
         if (cancelled) return
-        setExpandedSiteId(page.site_id)
+        setExpandedSiteId(page.site_id ?? GUEST_SITE_ID)
         setSelectedPageId(page.id)
+        const siteId = page.site_id ?? GUEST_SITE_ID
         return Promise.all([
-          fetchPages(page.site_id),
+          page.site_id ? fetchPages(page.site_id) : Promise.resolve([]),
           fetchParsed(page.id),
         ]).then(([pages, parsed]) => {
           if (cancelled) return
-          setPagesBySite((prev) => ({ ...prev, [page.site_id]: pages ?? [] }))
+          setPagesBySite((prev) => ({ ...prev, [siteId]: pages ?? [] }))
           setParsedByPage((prev) => ({ ...prev, [page.id]: parsed ?? [] }))
         })
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [searchParams])
+  }, [searchParams, isGuest])
 
   function refreshSites(
     setSites: (s: Site[] | ((prev: Site[]) => Site[])) => void,
@@ -78,18 +116,25 @@ export function SitesSidebar() {
       .finally(() => setLoading(false))
   }
 
-  // Refetch sites (and clear pages/parsed cache) when route changes or when data-changed event fires
+  // Refetch sites (and clear pages/parsed cache) when route changes or when data-changed event fires (non-guest only)
   useEffect(() => {
+    if (isGuest) return
     refreshSites(setSites, setPagesBySite, setParsedByPage, setLoading)
-  }, [location.pathname])
+  }, [location.pathname, isGuest])
 
   useEffect(() => {
     const handler = () => {
+      if (isGuest && guestPage) {
+        fetchParsed(guestPage.id).then((parsed) => {
+          setParsedByPage((prev) => ({ ...prev, [guestPage.id]: parsed ?? [] }))
+        }).catch(() => {})
+        return
+      }
       refreshSites(setSites, setPagesBySite, setParsedByPage, setLoading)
     }
     window.addEventListener(REFRESH_SIDEBAR_EVENT, handler)
     return () => window.removeEventListener(REFRESH_SIDEBAR_EVENT, handler)
-  }, [])
+  }, [isGuest, guestPage])
 
   // Admin: load users for "Content from" filter
   useEffect(() => {
@@ -97,19 +142,27 @@ export function SitesSidebar() {
     fetchUsers().then(setUsers).catch(() => {})
   }, [isAdmin])
 
+  const effectiveSites: Site[] = useMemo(() => {
+    if (isGuest && guestPage) {
+      return [{ id: GUEST_SITE_ID, name: 'Guest', url: '', created_at: '', updated_at: '' } as Site]
+    }
+    return sites
+  }, [isGuest, guestPage, sites])
+
   const filteredSites = useMemo(() => {
-    let list = sites
-    if (isAdmin && adminFilterUserId) {
+    let list = effectiveSites
+    if (isAdmin && adminFilterUserId && !isGuest) {
       list = list.filter((s) => s.created_by === adminFilterUserId)
     }
     if (!search.trim()) return list
     return list.filter(
-      (s) => matchSearch(s.name, search) || matchSearch(s.url, search)
+      (s) => matchSearch(s.name, search) || matchSearch(s.url || '', search)
     )
-  }, [sites, search, isAdmin, adminFilterUserId])
+  }, [effectiveSites, search, isAdmin, adminFilterUserId, isGuest])
 
   useEffect(() => {
     if (expandedSiteId == null) return
+    if (expandedSiteId === GUEST_SITE_ID) return
     if (pagesBySite[expandedSiteId]) return
     let cancelled = false
     setLoadingPages(expandedSiteId)
@@ -150,10 +203,20 @@ export function SitesSidebar() {
   }, [pages, search, isAdmin, adminFilterUserId])
 
   const parsedList = selectedPageId != null ? parsedByPage[selectedPageId] ?? [] : []
+  const guestParsedList = (isGuest && guestPage ? parsedByPage[guestPage.id] ?? [] : []).filter((p) => {
+    if (!search.trim()) return true
+    const q = search.trim().toLowerCase()
+    return (p.name ?? '').toLowerCase().includes(q) || (p.info ?? '').toLowerCase().includes(q)
+  })
 
   const toggleSite = (id: string) => {
+    const wasExpanded = expandedSiteId === id
     setExpandedSiteId((prev) => (prev === id ? null : id))
     setSelectedPageId(null)
+    if (!wasExpanded && id === GUEST_SITE_ID && guestPage) {
+      setSelectedPageId(guestPage.id)
+      navigate(`/?pageId=${guestPage.id}`)
+    }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       next.delete('pageId')
@@ -191,14 +254,46 @@ export function SitesSidebar() {
       <div className="sites-sidebar-search">
         <input
           type="search"
-          placeholder="Search (site / page)..."
+          placeholder={isGuest ? "Search articles..." : "Search (site / page)..."}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="sites-sidebar-input"
         />
       </div>
       <div className="sites-sidebar-list">
-        {loading ? (
+        {isGuest ? (
+          <>
+            <h3 className="sites-sidebar-parsed-heading">Your articles</h3>
+            {loading ? (
+              <p className="sites-sidebar-muted">Loading...</p>
+            ) : guestPageError ? (
+              <p className="sites-sidebar-error" role="alert">
+                {guestPageError}
+              </p>
+            ) : guestParsedList.length === 0 ? (
+              <p className="sites-sidebar-muted">No articles yet</p>
+            ) : (
+              <ul className="sites-sidebar-parsed-only">
+                {guestParsedList.map((r) => (
+                  <li key={r.id} className="sites-sidebar-parsed-only-item">
+                    <button
+                      type="button"
+                      className={`sites-sidebar-page-btn ${selectedPageId === guestPage?.id ? 'selected' : ''}`}
+                      onClick={() => guestPage && selectPage(guestPage.id)}
+                    >
+                      <span className="sites-sidebar-parsed-name">
+                        {r.name || `#${r.id}`}
+                      </span>
+                      {r.is_verified && (
+                        <span className="sites-sidebar-parsed-verified" title="Verified">✓</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : loading ? (
           <p className="sites-sidebar-muted">Loading...</p>
         ) : filteredSites.length === 0 ? (
           <p className="sites-sidebar-muted">No sites</p>

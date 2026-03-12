@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.routes.auth import _get_current_user_id_and_role, user_can_access
+from app.unique_site import get_or_create_unique_site
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -18,6 +19,7 @@ def _get_current_user_id(authorization: str | None = Header(default=None, alias=
 class SiteCreate(BaseModel):
     name: str
     url: str
+    allowed_for: list[str] | None = None
 
 
 class SiteUpdate(BaseModel):
@@ -91,7 +93,8 @@ def list_sites(
             sort_key = [("created_at", -1)]
         cursor = db["sites"].find(query).sort(sort_key)
     else:
-        cursor = db["sites"].find({"allowed_for": user_id})
+        get_or_create_unique_site(db, user_id)
+        cursor = db["sites"].find({"$or": [{"allowed_for": user_id}, {"name": "Unique"}]})
     items = [_doc_to_site(d) for d in cursor]
     return _enrich_sites_with_usernames(db, items, role)
 
@@ -109,7 +112,7 @@ def get_site(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if not user_can_access(doc, user_id, role):
+    if doc.get("name") != "Unique" and not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=404, detail="Not found")
     out = _doc_to_site(doc)
     return _enrich_sites_with_usernames(db, [out], role)[0]
@@ -120,13 +123,16 @@ def create_site(
     body: SiteCreate,
     authorization: str | None = Header(default=None, alias="Authorization"),
 ):
-    user_id = _get_current_user_id(authorization)
+    user_id, role = _get_current_user_id_and_role(authorization)
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    allowed_for = body.allowed_for if body.allowed_for is not None else [user_id]
     now = datetime.now(timezone.utc).isoformat()
     doc = {
         "name": body.name.strip(),
         "url": body.url.strip(),
         "created_by": user_id,
-        "allowed_for": [user_id],
+        "allowed_for": allowed_for,
         "created_at": now,
         "updated_at": now,
     }

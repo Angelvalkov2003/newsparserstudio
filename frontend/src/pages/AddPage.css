@@ -1,0 +1,70 @@
+.add-page-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.add-page-left {
+  flex: 0 0 50%;
+  min-width: 320px;
+  overflow-y: auto;
+  padding: 1.25rem;
+  border-right: 1px solid var(--preview-border, #313244);
+}
+
+.add-page-uniq-hint {
+  color: var(--preview-muted, #a6adc8);
+  font-size: 0.875rem;
+  margin: -0.5rem 0 1rem 0;
+}
+
+.add-page-right {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--preview-bg, #11111b);
+  color: var(--preview-fg, #cdd6f4);
+}
+
+.add-page-right-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--preview-muted, #a6adc8);
+}
+
+.add-page-url-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--preview-input-bg, #313244);
+  border: 1px solid var(--preview-border, #45475a);
+  border-radius: 8px;
+  color: var(--preview-fg, #cdd6f4);
+}
+
+.add-page-url-input:focus {
+  outline: none;
+  border-color: var(--preview-accent, #89b4fa);
+}
+
+.add-page-url-input::placeholder {
+  color: var(--preview-muted, #a6adc8);
+}
+
+.add-page-left .list-section {
+  margin-top: 1.5rem;
+}
+
+.add-page-left .list-section-search {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 0.75rem;
+}

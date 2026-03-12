@@ -36,12 +36,21 @@ export function PreviewPanel({
   const { url, data_corrected_loaded, activePreviewMode } = state;
   const [referenceData, setReferenceData] = useState<ArticleDataCorrected | null>(null);
   const [loadingReference, setLoadingReference] = useState(false);
+  const articleUrl = url || pageUrl;
+  const [editableUrl, setEditableUrl] = useState(articleUrl);
 
   const hasPage = Boolean(pageUrl);
 
-  // When reference is a parsed id, fetch its data
+  /** Only use as iframe src when it looks like an absolute URL to avoid loading relative paths (e.g. "dsadasdas d") as app routes */
+  const iframeSrc = editableUrl && /^https?:\/\//i.test(editableUrl.trim()) ? editableUrl.trim() : "";
+
   useEffect(() => {
-    if (typeof selectedReference !== "string") {
+    setEditableUrl(articleUrl);
+  }, [articleUrl]);
+
+  // When reference is a parsed id, fetch its data (skip when reference is "url" = preview by URL)
+  useEffect(() => {
+    if (typeof selectedReference !== "string" || selectedReference === "url") {
       setReferenceData(null);
       return;
     }
@@ -80,48 +89,84 @@ export function PreviewPanel({
     <main className="preview-panel" aria-label="Preview">
       <div className="preview-panel-toolbar">
         {hasPage ? (
-          <label className="preview-mode-label">
-            <span className="preview-mode-label-text">Reference</span>
-            <select
-              className="preview-mode-select"
-              value={selectedReference === "url" ? "url" : selectedReference}
-              onChange={handleReferenceChange}
-              aria-label="Reference: URL or verified parsed"
-            >
-              <option value="url">URL</option>
-              {verifiedList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {formatParsedLabel(p)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <>
+            <label className="preview-mode-label">
+              <span className="preview-mode-label-text">Reference</span>
+              <select
+                className="preview-mode-select"
+                value={selectedReference === "url" ? "url" : selectedReference}
+                onChange={handleReferenceChange}
+                aria-label="Reference: URL or verified parsed"
+              >
+                <option value="url">URL</option>
+                {verifiedList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {formatParsedLabel(p)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selectedReference === "url" && (
+              <label className="preview-mode-label">
+                <span className="preview-mode-label-text">URL</span>
+                <input
+                  className="preview-url-input"
+                  type="url"
+                  value={editableUrl}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEditableUrl(v);
+                    dispatch({ type: "SET_URL", payload: v });
+                  }}
+                  placeholder={pageUrl || "https://example.com/article"}
+                />
+              </label>
+            )}
+          </>
         ) : (
-          <label className="preview-mode-label">
-            <span className="preview-mode-label-text">Preview</span>
-            <select
-              className="preview-mode-select"
-              value={activePreviewMode}
-              onChange={handleModeChange}
-              aria-label="Preview mode"
-            >
-              {MODE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <>
+            <label className="preview-mode-label">
+              <span className="preview-mode-label-text">Preview</span>
+              <select
+                className="preview-mode-select"
+                value={activePreviewMode}
+                onChange={handleModeChange}
+                aria-label="Preview mode"
+              >
+                {MODE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {activePreviewMode === "original" && (
+              <label className="preview-mode-label">
+                <span className="preview-mode-label-text">Link (URL)</span>
+                <input
+                  className="preview-url-input"
+                  type="url"
+                  value={editableUrl}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEditableUrl(v);
+                    dispatch({ type: "SET_URL", payload: v });
+                  }}
+                  placeholder="https://..."
+                />
+              </label>
+            )}
+          </>
         )}
       </div>
 
       <div className="preview-panel-content">
         {hasPage ? (
           selectedReference === "url" ? (
-            pageUrl ? (
+            iframeSrc ? (
               <iframe
                 title="Original article (page URL)"
-                src={pageUrl}
+                src={iframeSrc}
                 className="preview-iframe"
                 sandbox="allow-same-origin allow-scripts"
               />
@@ -139,17 +184,16 @@ export function PreviewPanel({
           <>
             {activePreviewMode === "original" && (
               <>
-                {url ? (
+                {iframeSrc ? (
                   <iframe
                     title="Original article"
-                    src={url}
+                    src={iframeSrc}
                     className="preview-iframe"
                     sandbox="allow-same-origin allow-scripts"
                   />
                 ) : (
                   <p className="preview-placeholder-block">
-                    Load an article to see the original page. Enter a URL and load
-                    the article, or the URL is set when you upload a JSON file.
+                    Load an article to see the original page, or enter a URL above.
                   </p>
                 )}
               </>

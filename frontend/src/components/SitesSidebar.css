@@ -79,6 +79,16 @@
   margin: 0;
 }
 
+.sites-sidebar-error {
+  font-size: 0.8125rem;
+  color: var(--editor-error, #c62828);
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  background: var(--editor-error-bg, rgba(198, 40, 40, 0.08));
+  border-radius: 6px;
+  margin: 0 0.5rem 0.5rem;
+}
+
 .sites-sidebar-sites {
   list-style: none;
   padding: 0;
@@ -193,4 +203,35 @@
   flex-shrink: 0;
   color: var(--editor-success);
   font-weight: 600;
+}
+
+.sites-sidebar-parsed-heading {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--editor-muted);
+  margin: 0 0 0.5rem 0.75rem;
+  padding: 0;
+}
+
+.sites-sidebar-parsed-only {
+  list-style: none;
+  padding: 0 0.5rem;
+  margin: 0;
+}
+
+.sites-sidebar-parsed-only-item {
+  margin-bottom: 0.25rem;
+}
+
+.sites-sidebar-parsed-only-item .sites-sidebar-page-btn {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sites-sidebar-parsed-only-item .sites-sidebar-parsed-name {
+  flex: 1;
+  min-width: 0;
 }

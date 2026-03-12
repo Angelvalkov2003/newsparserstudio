@@ -185,6 +185,8 @@ def get_parsed(
     parsed_id: str,
     authorization: str | None = Header(default=None, alias="Authorization"),
 ):
+    if parsed_id in ("url", "guest-page", "unique-page") or not parsed_id.strip():
+        raise HTTPException(status_code=404, detail="Not found")
     user_id, role = _get_current_user_id_and_role(authorization)
     db = get_db()
     try:

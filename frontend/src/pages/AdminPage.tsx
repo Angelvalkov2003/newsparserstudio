@@ -15,7 +15,7 @@ import {
   type ParsedWithPage,
   type UserPublic,
 } from '../api'
-import { useIsAdmin } from '../context/authContext'
+import { useIsAdmin } from '../context'
 import { refreshSidebar } from '../utils/sidebarRefresh'
 import './AdminPage.css'
 

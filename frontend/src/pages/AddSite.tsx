@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchSites, createSite, getSite, updateSite, deleteSite, fetchUsers, type Site as SiteType, type UserPublic } from '../api'
 import { refreshSidebar } from '../utils/sidebarRefresh'
-import { useIsAdmin } from '../context/authContext'
+import { useIsAdmin } from '../context'
 
 export function AddSite() {
   const isAdmin = useIsAdmin()
@@ -36,6 +36,15 @@ export function AddSite() {
     load()
   }, [isAdmin])
 
+  if (!isAdmin) {
+    return (
+      <div className="form-page">
+        <h1>Sites</h1>
+        <p>Only admins can manage sites.</p>
+      </div>
+    )
+  }
+
   const resetForm = () => {
     setName('')
     setUrl('')
@@ -67,12 +76,13 @@ export function AddSite() {
     setSubmitting(true)
     try {
       if (editingId != null) {
-        await updateSite(editingId, name.trim(), url.trim(), isAdmin ? allowedFor : undefined)
+        await updateSite(editingId, name.trim(), url.trim(), allowedFor)
         resetForm()
       } else {
-        await createSite(name.trim(), url.trim())
+        await createSite(name.trim(), url.trim(), allowedFor)
         setName('')
         setUrl('')
+        setAllowedFor([])
       }
       load()
       refreshSidebar()
@@ -133,6 +143,20 @@ export function AddSite() {
           <div className="form-group">
             <label>Who can see and use this site</label>
             <div className="form-checkbox-list">
+              <div className="form-checkbox-list-actions">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAllowedFor(
+                      users
+                        .filter((u) => !u.is_guest && u.role !== 'admin')
+                        .map((u) => u.id)
+                    )
+                  }
+                >
+                  Select all users
+                </button>
+              </div>
               {users.filter((u) => !u.is_guest && u.role !== 'admin').map((u) => (
                 <label key={u.id} className="form-checkbox">
                   <input

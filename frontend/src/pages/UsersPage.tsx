@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchUsers, createUser, type UserPublic } from '../api'
-import { useIsAdmin } from '../context/authContext'
+import { fetchUsers, createUser, updateUser, deleteUser, type UserPublic } from '../api'
+import { useIsAdmin } from '../context'
 
 export function UsersPage() {
   const isAdmin = useIsAdmin()
@@ -12,6 +12,11 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editUsername, setEditUsername] = useState('')
+  const [editPassword, setEditPassword] = useState('')
+  const [showEditPassword, setShowEditPassword] = useState(false)
 
   const load = useCallback(async () => {
     if (!isAdmin) {
@@ -31,6 +36,21 @@ export function UsersPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  const startEdit = (u: UserPublic) => {
+    if (u.role === 'admin') return
+    setEditingId(u.id)
+    setEditUsername(u.username)
+    setEditPassword('')
+    setError(null)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditUsername('')
+    setEditPassword('')
+    setError(null)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,6 +74,45 @@ export function UsersPage() {
       setError(e instanceof Error ? e.message : 'Create failed')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingId) return
+    const trimmed = editUsername.trim()
+    if (!trimmed) {
+      setError('Enter username.')
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    try {
+      const updates: { username?: string; password?: string } = { username: trimmed }
+      if (editPassword) updates.password = editPassword
+      await updateUser(editingId, updates)
+      cancelEdit()
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteUser = async (u: UserPublic) => {
+    if (u.role === 'admin') return
+    const msg = u.is_guest
+      ? `Delete guest "${u.username}"? All their data (articles, page) will be permanently deleted.`
+      : `Delete user "${u.username}"? Their pages and parsed data will be removed and they will be removed from shared access.`
+    if (!window.confirm(msg)) return
+    setError(null)
+    try {
+      await deleteUser(u.id)
+      if (editingId === u.id) cancelEdit()
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delete failed')
     }
   }
 
@@ -126,6 +185,54 @@ export function UsersPage() {
         </div>
       </form>
 
+      {editingId != null && (
+        <form onSubmit={handleUpdateUser} className="form-edit-user">
+          <h2>Edit user</h2>
+          <div className="form-group">
+            <label htmlFor="edit-username">Username</label>
+            <input
+              id="edit-username"
+              type="text"
+              value={editUsername}
+              onChange={(e) => setEditUsername(e.target.value)}
+              placeholder="Username"
+              autoComplete="off"
+            />
+          </div>
+          <div className="form-group form-group--password">
+            <label htmlFor="edit-password">New password (leave empty to keep current)</label>
+            <div className="password-input-wrap">
+              <input
+                id="edit-password"
+                type={showEditPassword ? 'text' : 'password'}
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                placeholder="New password"
+                autoComplete="new-password"
+                className="password-input"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowEditPassword((s) => !s)}
+                title={showEditPassword ? 'Hide password' : 'Show password'}
+                aria-label={showEditPassword ? 'Hide password' : 'Show password'}
+              >
+                {showEditPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="primary" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Update user'}
+            </button>
+            <button type="button" onClick={cancelEdit}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
       <section className="list-section">
         <h2>Existing users</h2>
         {loading ? (
@@ -142,6 +249,16 @@ export function UsersPage() {
                     {u.role === 'admin' ? 'Admin' : u.is_guest ? 'Guest' : 'Regular'}
                   </span>
                 </div>
+                {u.role !== 'admin' && (
+                  <div className="list-item-actions">
+                    <button type="button" onClick={() => startEdit(u)}>
+                      Edit
+                    </button>
+                    <button type="button" className="danger" onClick={() => handleDeleteUser(u)}>
+                      Delete
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
