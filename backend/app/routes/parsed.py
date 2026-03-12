@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from bson import ObjectId
 
@@ -5,9 +6,63 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.routes.auth import _get_current_user_id_and_role
+from app.routes.auth import _get_current_user_id_and_role, user_can_access
 
 router = APIRouter(prefix="/parsed", tags=["parsed"])
+
+# Expected structure: { "metadata": { "title", "authors", "categories", "tags" }, "components": [ { "type", "id", ... } ] }
+VALID_COMPONENT_TYPES = frozenset({
+    "heading", "paragraph", "image", "link", "code_block", "equation",
+    "citation", "footnote", "horizontal_ruler", "list", "poll", "table", "video",
+})
+
+
+def _validate_parsed_data(data_str: str) -> None:
+    """Validate that data is valid JSON with expected structure (metadata + components). Raises HTTPException 422 on error."""
+    if not data_str or not data_str.strip():
+        raise HTTPException(status_code=422, detail="data: Cannot be empty. Expect a JSON object with 'metadata' and 'components'.")
+    try:
+        obj = json.loads(data_str)
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"data: Invalid JSON. {e.msg} (line {e.lineno}, column {e.colno}).",
+        )
+    if not isinstance(obj, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="data: Must be a JSON object with 'metadata' and 'components'.",
+        )
+    if "metadata" not in obj:
+        raise HTTPException(status_code=422, detail="data: Missing required key 'metadata'.")
+    meta = obj["metadata"]
+    if not isinstance(meta, dict):
+        raise HTTPException(status_code=422, detail="data: 'metadata' must be an object.")
+    for key in ("title", "authors", "categories", "tags"):
+        if key not in meta:
+            raise HTTPException(status_code=422, detail=f"data: metadata must contain '{key}'.")
+    if not isinstance(meta.get("title"), str):
+        raise HTTPException(status_code=422, detail="data: metadata.title must be a string.")
+    for key in ("authors", "categories", "tags"):
+        if not isinstance(meta.get(key), list):
+            raise HTTPException(status_code=422, detail=f"data: metadata.{key} must be an array.")
+    if "components" not in obj:
+        raise HTTPException(status_code=422, detail="data: Missing required key 'components'.")
+    comps = obj["components"]
+    if not isinstance(comps, list):
+        raise HTTPException(status_code=422, detail="data: 'components' must be an array.")
+    for i, c in enumerate(comps):
+        if not isinstance(c, dict):
+            raise HTTPException(status_code=422, detail=f"data: components[{i}] must be an object.")
+        if "type" not in c or not isinstance(c.get("type"), str):
+            raise HTTPException(status_code=422, detail=f"data: components[{i}] must have a string 'type'.")
+        if c["type"] not in VALID_COMPONENT_TYPES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"data: components[{i}].type '{c['type']}' is not valid. Allowed: {sorted(VALID_COMPONENT_TYPES)}.",
+            )
+        if "id" not in c or not isinstance(c.get("id"), str):
+            raise HTTPException(status_code=422, detail=f"data: components[{i}] must have a string 'id'.")
 
 
 class ParsedCreate(BaseModel):
@@ -16,6 +71,7 @@ class ParsedCreate(BaseModel):
     data: str
     info: str | None = None
     is_verified: bool = False
+    notes: str | None = None
 
 
 class ParsedUpdate(BaseModel):
@@ -25,6 +81,7 @@ class ParsedUpdate(BaseModel):
     info: str | None = None
     is_verified: bool = False
     allowed_for: list[str] | None = None
+    notes: str | None = None
 
 
 class ParsedVisibilityUpdate(BaseModel):
@@ -39,6 +96,7 @@ def _doc_to_parsed(doc: dict, page_title: str | None = None, page_url: str | Non
         "data": doc.get("data", ""),
         "info": doc.get("info"),
         "is_verified": doc.get("is_verified", False),
+        "notes": doc.get("notes"),
         "created_by": doc.get("created_by"),
         "allowed_for": doc.get("allowed_for") or [],
         "created_at": doc.get("created_at", ""),
@@ -135,7 +193,7 @@ def get_parsed(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=404, detail="Not found")
     title, url = _get_page_info(db, doc["page_id"])
     out = _doc_to_parsed(doc, title, url)
@@ -158,8 +216,9 @@ def create_parsed(
     page = db["pages"].find_one({"_id": ObjectId(body.page_id)})
     if not page:
         raise HTTPException(status_code=400, detail="Page not found")
-    if role != "admin" and user_id not in (page.get("allowed_for") or []):
+    if not user_can_access(page, user_id, role):
         raise HTTPException(status_code=403, detail="No access to this page")
+    _validate_parsed_data(body.data)
     now = datetime.now(timezone.utc).isoformat()
     doc = {
         "page_id": body.page_id,
@@ -167,6 +226,7 @@ def create_parsed(
         "data": body.data,
         "info": body.info.strip() if body.info else None,
         "is_verified": body.is_verified,
+        "notes": body.notes.strip() if body.notes else None,
         "created_by": user_id,
         "allowed_for": [user_id],
         "created_at": now,
@@ -192,8 +252,9 @@ def update_parsed(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=403, detail="Forbidden")
+    _validate_parsed_data(body.data)
     now = datetime.now(timezone.utc).isoformat()
     set_payload = {
         "page_id": body.page_id,
@@ -201,6 +262,7 @@ def update_parsed(
         "data": body.data,
         "info": body.info.strip() if body.info else None,
         "is_verified": body.is_verified,
+        "notes": body.notes.strip() if body.notes else None,
         "updated_at": now,
     }
     if body.allowed_for is not None:
@@ -250,6 +312,6 @@ def delete_parsed(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=403, detail="Forbidden")
     db["parsed"].delete_one({"_id": ObjectId(parsed_id)})

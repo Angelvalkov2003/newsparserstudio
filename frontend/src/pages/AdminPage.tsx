@@ -232,9 +232,7 @@ export function AdminPage() {
 function AdminSitesTable({
   sites,
   onEdit,
-  onSave,
   onDelete,
-  users,
 }: {
   sites: Site[]
   onEdit: (s: Site) => void
@@ -282,11 +280,8 @@ function AdminSitesTable({
 
 function AdminPagesTable({
   pages,
-  sites,
   onEdit,
-  onSave,
   onDelete,
-  users,
 }: {
   pages: PageWithSite[]
   sites: Site[]
@@ -337,11 +332,8 @@ function AdminPagesTable({
 
 function AdminParsedTable({
   parsed,
-  pages,
   onEdit,
-  onSave,
   onDelete,
-  users,
 }: {
   parsed: ParsedWithPage[]
   pages: PageWithSite[]

@@ -12,10 +12,9 @@ import { formatParsedLabel } from "../../utils/formatParsedLabel";
 interface EditorPanelProps {
   state: ArticleEditorState;
   dispatch: Dispatch<ArticleEditorAction>;
-  pageUrl: string;
   unverifiedList: ParsedWithPage[];
-  selectedUnverifiedId: number | null;
-  onSelectUnverified: (id: number | null) => void;
+  selectedUnverifiedId: string | null;
+  onSelectUnverified: (id: string | null) => void;
   loadingParsed: boolean;
   hasPage: boolean;
   /** After Load succeeds (e.g. save to DB when page selected) */
@@ -35,7 +34,6 @@ interface EditorPanelProps {
 export function EditorPanel({
   state,
   dispatch,
-  pageUrl,
   unverifiedList,
   selectedUnverifiedId,
   onSelectUnverified,

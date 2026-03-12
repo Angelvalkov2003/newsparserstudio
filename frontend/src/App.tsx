@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider, useCurrentUser, useAuth } from './context/authContext'
+import { AuthProvider, useAuth } from './context/authContext'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { EditorPage } from './pages/EditorPage'

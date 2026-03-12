@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchUsers, createUser, updateUser, type UserPublic } from '../api'
+import { fetchUsers, createUser, type UserPublic } from '../api'
 import { useIsAdmin } from '../context/authContext'
 
 export function UsersPage() {
@@ -57,16 +57,6 @@ export function UsersPage() {
     }
   }
 
-  const handleVerify = async (u: UserPublic) => {
-    if (u.role !== 'regular' || u.is_guest) return
-    try {
-      await updateUser(u.id, { is_verified_by_admin: !u.is_verified_by_admin })
-      await load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Update failed')
-    }
-  }
-
   if (!isAdmin) {
     return (
       <div className="form-page">
@@ -80,7 +70,7 @@ export function UsersPage() {
     <div className="form-page">
       <h1>Users</h1>
       <p style={{ color: 'var(--editor-muted)', marginBottom: '1rem', fontSize: '0.9375rem' }}>
-        Create users (admin or regular). Regular users must be verified by an admin to log in.
+        All users are created by admin. Choose role: Admin or Regular.
       </p>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
@@ -150,20 +140,7 @@ export function UsersPage() {
                   <strong>{u.username}</strong>
                   <span className="users-list-role">
                     {u.role === 'admin' ? 'Admin' : u.is_guest ? 'Guest' : 'Regular'}
-                    {u.role === 'regular' && !u.is_guest && (
-                      u.is_verified_by_admin ? ' (verified)' : ' (not verified)'
-                    )}
                   </span>
-                  {u.role === 'regular' && !u.is_guest && (
-                    <button
-                      type="button"
-                      className="small-btn"
-                      style={{ marginLeft: 8 }}
-                      onClick={() => handleVerify(u)}
-                    >
-                      {u.is_verified_by_admin ? 'Unverify' : 'Verify'}
-                    </button>
-                  )}
                 </div>
               </li>
             ))}

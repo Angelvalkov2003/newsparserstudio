@@ -21,11 +21,15 @@ export function AddPage() {
   const [users, setUsers] = useState<UserPublic[]>([])
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
+  const [notes, setNotes] = useState('')
   const [siteId, setSiteId] = useState<string>('')
   const [allowedFor, setAllowedFor] = useState<string[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filterSiteId, setFilterSiteId] = useState<string>('')
+  const [filterCreatedBy, setFilterCreatedBy] = useState<string>('')
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('')
+  const [filterDateTo, setFilterDateTo] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +60,7 @@ export function AddPage() {
   const resetForm = () => {
     setTitle('')
     setUrl('')
+    setNotes('')
     setSiteId(sites.length ? sites[0].id : '')
     setAllowedFor([])
     setEditingId(null)
@@ -67,6 +72,7 @@ export function AddPage() {
       const page = await getPage(id)
       setTitle(page.title ?? '')
       setUrl(page.url)
+      setNotes(page.notes ?? '')
       setSiteId(page.site_id)
       setAllowedFor(page.allowed_for ?? [])
       setEditingId(id)
@@ -90,12 +96,13 @@ export function AddPage() {
     setSubmitting(true)
     try {
       if (editingId != null) {
-        await updatePage(editingId, title.trim() || null, url.trim(), siteId, isAdmin ? allowedFor : undefined)
+        await updatePage(editingId, title.trim() || null, url.trim(), siteId, isAdmin ? allowedFor : undefined, notes.trim() || null)
         resetForm()
       } else {
-        await createPage(title.trim() || null, url.trim(), siteId)
+        await createPage(title.trim() || null, url.trim(), siteId, notes.trim() || null)
         setTitle('')
         setUrl('')
+        setNotes('')
       }
       load()
       refreshSidebar()
@@ -121,13 +128,18 @@ export function AddPage() {
 
   const filteredList = list.filter((p) => {
     const matchSite = !filterSiteId || p.site_id === filterSiteId
+    const matchCreatedBy = !filterCreatedBy || p.created_by === filterCreatedBy
+    const dateStr = p.created_at ? p.created_at.slice(0, 10) : ''
+    const matchDateFrom = !filterDateFrom || dateStr >= filterDateFrom
+    const matchDateTo = !filterDateTo || dateStr <= filterDateTo
     const q = search.trim().toLowerCase()
     const matchSearch =
       !q ||
       (p.title ?? '').toLowerCase().includes(q) ||
       p.url.toLowerCase().includes(q) ||
-      (p.site_name ?? '').toLowerCase().includes(q)
-    return matchSite && matchSearch
+      (p.site_name ?? '').toLowerCase().includes(q) ||
+      (p.notes ?? '').toLowerCase().includes(q)
+    return matchSite && matchCreatedBy && matchDateFrom && matchDateTo && matchSearch
   })
 
   return (
@@ -169,6 +181,17 @@ export function AddPage() {
             onChange={(e) => setUrl(e.target.value)}
             required
             placeholder="https://..."
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="page-notes">Notes (internal)</label>
+          <textarea
+            id="page-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Internal notes or comments..."
+            rows={2}
+            className="form-input"
           />
         </div>
         {isAdmin && editingId != null && users.length > 0 && (
@@ -215,6 +238,7 @@ export function AddPage() {
             value={filterSiteId}
             onChange={(e) => setFilterSiteId(e.target.value)}
             className="list-section-filter"
+            aria-label="Filter by site"
           >
             <option value="">All sites</option>
             {sites.map((s) => (
@@ -223,6 +247,37 @@ export function AddPage() {
               </option>
             ))}
           </select>
+          {isAdmin && users.length > 0 && (
+            <select
+              value={filterCreatedBy}
+              onChange={(e) => setFilterCreatedBy(e.target.value)}
+              className="list-section-filter"
+              aria-label="Filter by creator"
+            >
+              <option value="">All users</option>
+              {users.filter((u) => !u.is_guest).map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.username}
+                </option>
+              ))}
+            </select>
+          )}
+          <input
+            type="date"
+            value={filterDateFrom}
+            onChange={(e) => setFilterDateFrom(e.target.value)}
+            className="list-section-filter list-section-date"
+            aria-label="Date from"
+            title="Created from"
+          />
+          <input
+            type="date"
+            value={filterDateTo}
+            onChange={(e) => setFilterDateTo(e.target.value)}
+            className="list-section-filter list-section-date"
+            aria-label="Date to"
+            title="Created to"
+          />
         </div>
         {loading ? (
           <p>Loading…</p>
@@ -242,6 +297,12 @@ export function AddPage() {
                   )}
                   <br />
                   <small>{p.url}</small>
+                  {p.notes && (
+                    <>
+                      <br />
+                      <small className="list-item-notes">Notes: {p.notes}</small>
+                    </>
+                  )}
                   <div className="list-item-meta">
                     <span title="Creator">By: {p.created_by_username ?? p.created_by ?? '—'}</span>
                     <span title="Who has access">Access: {[...new Set([p.created_by_username ?? p.created_by, ...(p.allowed_for_usernames ?? p.allowed_for ?? [])].filter(Boolean))].join(', ') || '—'}</span>

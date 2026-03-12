@@ -58,18 +58,6 @@ def root():
     return {"status": "ok", "message": "Universal Markdown Builder Studio API"}
 
 
-@app.get("/health")
-def health():
-    if not MONGO_URL:
-        return {"status": "healthy"}
-    try:
-        db = get_db()
-        db.command("ping")
-        return {"status": "ok", "mongodb": "connected"}
-    except Exception:
-        return {"status": "error", "mongodb": "disconnected"}
-
-
 @app.exception_handler(Exception)
 def catch_all(_request, exc: Exception):
     traceback.print_exc()

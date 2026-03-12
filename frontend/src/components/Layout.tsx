@@ -38,7 +38,7 @@ export function Layout() {
                 Admin
               </NavLink>
             )}
-            {(isAdmin || currentUser?.isGuest) && (
+            {isAdmin && (
               <NavLink to="/users" className={({ isActive }) => (isActive ? 'active' : '')}>
                 Users
               </NavLink>

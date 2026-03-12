@@ -2,8 +2,7 @@
 
 ## 1. Backend (.env and dependencies)
 
-- `backend/.env` must contain **MONGODB_URI** (Atlas connection string).
-- Database name: default **universal_markdown_builder** (or set `MONGODB_DB_NAME` in `.env`).
+- `backend/.env` already contains **MONGODB_URI** for this project. Database name: default **universal_markdown_builder** (or set `MONGODB_DB_NAME` in `.env`).
 
 Install dependencies (once):
 ```powershell
@@ -34,7 +33,6 @@ Keep the window open. On success you will see: `Application startup complete`.
 
 - API: **http://127.0.0.1:8000**
 - Swagger: **http://127.0.0.1:8000/docs**
-- Health: **http://127.0.0.1:8000/health**
 
 ## 3. Adding records (users)
 

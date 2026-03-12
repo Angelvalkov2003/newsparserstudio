@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.routes.auth import _get_current_user_id_and_role
+from app.routes.auth import _get_current_user_id_and_role, user_can_access
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -109,7 +109,7 @@ def get_site(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=404, detail="Not found")
     out = _doc_to_site(doc)
     return _enrich_sites_with_usernames(db, [out], role)[0]
@@ -150,7 +150,7 @@ def update_site(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=403, detail="Forbidden")
     now = datetime.now(timezone.utc).isoformat()
     set_payload = {"name": body.name.strip(), "url": body.url.strip(), "updated_at": now}
@@ -201,6 +201,6 @@ def delete_site(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=403, detail="Forbidden")
     db["sites"].delete_one({"_id": ObjectId(site_id)})

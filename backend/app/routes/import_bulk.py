@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.routes.auth import _get_current_user_id_and_role
+from app.routes.parsed import _validate_parsed_data
 
 router = APIRouter(tags=["import-bulk"])
 
@@ -16,11 +17,13 @@ class ParsedBulkItem(BaseModel):
     data: str | dict = ""
     info: str | None = None
     is_verified: bool = False
+    notes: str | None = None
 
 
 class PageBulkItem(BaseModel):
     title: str | None = None
     url: str
+    notes: str | None = None
     parsed: list[ParsedBulkItem] | None = None
 
 
@@ -79,6 +82,7 @@ def import_bulk(
                     "title": page_item.title.strip() if page_item.title else None,
                     "url": page_url,
                     "site_id": site_id,
+                    "notes": page_item.notes.strip() if page_item.notes else None,
                     "created_by": user_id,
                     "allowed_for": [user_id],
                     "created_at": now,
@@ -91,12 +95,18 @@ def import_bulk(
             for p in (page_item.parsed or []):
                 data_str = p.data if isinstance(p.data, str) else json.dumps(p.data)
                 try:
+                    _validate_parsed_data(data_str)
+                except HTTPException as e:
+                    errors.append(f"Parsed data validation: {e.detail}")
+                    continue
+                try:
                     doc = {
                         "page_id": page_id,
                         "name": p.name.strip() if p.name else None,
                         "data": data_str,
                         "info": p.info.strip() if p.info else None,
                         "is_verified": p.is_verified,
+                        "notes": p.notes.strip() if p.notes else None,
                         "created_by": user_id,
                         "allowed_for": [user_id],
                         "created_at": now,

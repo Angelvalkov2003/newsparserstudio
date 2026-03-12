@@ -37,7 +37,6 @@ class CreateUserBody(BaseModel):
 
 class UpdateUserBody(BaseModel):
     role: str | None = None
-    is_verified_by_admin: bool | None = None
 
 
 @router.get("", response_model=list[UserPublic])
@@ -65,7 +64,6 @@ def create_user(
         "username": username,
         "hashed_password": hash_password(body.password),
         "role": body.role if body.role in ("admin", "regular", "guest") else "regular",
-        "is_verified_by_admin": body.role == "regular",
         "is_guest": False,
     }
     result = db["users"].insert_one(doc)
@@ -85,8 +83,6 @@ def update_user(
     updates = {}
     if body.role is not None:
         updates["role"] = body.role
-    if body.is_verified_by_admin is not None:
-        updates["is_verified_by_admin"] = body.is_verified_by_admin
     if not updates:
         doc = db["users"].find_one({"_id": ObjectId(user_id)})
         if not doc:

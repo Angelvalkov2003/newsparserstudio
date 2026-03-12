@@ -1,8 +1,6 @@
 # MongoDB setup
 
-1. Copy `.env.example` to `.env` and set:
-   - `MONGODB_URI` – replace `<db_password>` with the real password for `angelvalkov03_db_user`
-   - `JWT_SECRET` – optional; set a random string in production
+1. `backend/.env` already contains **MONGODB_URI** for this project. To use another cluster, replace it. Set **JWT_SECRET** to a random string in production.
 
 2. First user (admin): if the database has no users, you can create the first one via:
    ```bash
@@ -12,7 +10,7 @@
 
 3. Roles:
    - **Guest** – sees only own sites/pages/parsed; created via "Continue as guest".
-   - **Admin** – sees and edits everything; can set `allowed_for` and verify Regular users.
-   - **Regular** – must be verified by admin to log in; sees own items + items where they are in `allowed_for`.
+   - **Admin** – sees and edits everything; creates all non-guest users; can set `allowed_for`.
+   - **Regular** – created by admin; sees own items + items where they are in `allowed_for`.
 
 4. Visibility: each site, page, and parsed has `created_by` (user id) and `allowed_for` (list of user ids). A user sees an item if they are the creator, or in `allowed_for`, or are admin. Only admin can set `allowed_for` (future UI: PATCH `/api/sites/{id}/allowed-for`, etc.).

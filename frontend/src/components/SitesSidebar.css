@@ -10,6 +10,36 @@
   overflow: hidden;
 }
 
+.sites-sidebar-admin-filter {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--editor-border);
+  flex-shrink: 0;
+}
+
+.sites-sidebar-admin-filter-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--editor-muted);
+  margin-bottom: 0.25rem;
+}
+
+.sites-sidebar-admin-filter-select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  background: var(--editor-input-bg);
+  color: var(--editor-fg);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sites-sidebar-admin-filter-select:focus {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 1px;
+}
+
 .sites-sidebar-search {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--editor-border);

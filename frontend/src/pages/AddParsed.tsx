@@ -26,11 +26,16 @@ export function AddParsed() {
   const [name, setName] = useState('')
   const [dataJson, setDataJson] = useState('')
   const [info, setInfo] = useState('')
+  const [notes, setNotes] = useState('')
   const [isVerified, setIsVerified] = useState(false)
   const [allowedFor, setAllowedFor] = useState<string[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filterSiteId, setFilterSiteId] = useState<string>('')
+  const [filterPageId, setFilterPageId] = useState<string>('')
+  const [filterCreatedBy, setFilterCreatedBy] = useState<string>('')
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('')
+  const [filterDateTo, setFilterDateTo] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +70,7 @@ export function AddParsed() {
     setName('')
     setDataJson('')
     setInfo('')
+    setNotes('')
     setIsVerified(false)
     setAllowedFor([])
     setEditingId(null)
@@ -78,6 +84,7 @@ export function AddParsed() {
       setName(r.name ?? '')
       setDataJson(r.data)
       setInfo(r.info ?? '')
+      setNotes(r.notes ?? '')
       setIsVerified(r.is_verified)
       setAllowedFor(r.allowed_for ?? [])
       setEditingId(id)
@@ -119,7 +126,8 @@ export function AddParsed() {
           trimmed,
           info.trim() || null,
           isVerified,
-          isAdmin ? allowedFor : undefined
+          isAdmin ? allowedFor : undefined,
+          notes.trim() || null
         )
         resetForm()
       } else {
@@ -128,11 +136,13 @@ export function AddParsed() {
           name.trim() || null,
           trimmed,
           info.trim() || null,
-          isVerified
+          isVerified,
+          notes.trim() || null
         )
         setName('')
         setDataJson('')
         setInfo('')
+        setNotes('')
         setIsVerified(false)
       }
       load()
@@ -160,15 +170,21 @@ export function AddParsed() {
   const filteredList = list.filter((r) => {
     const page = pages.find((p) => p.id === r.page_id)
     const matchSite = !filterSiteId || page?.site_id === filterSiteId
+    const matchPage = !filterPageId || r.page_id === filterPageId
+    const matchCreatedBy = !filterCreatedBy || r.created_by === filterCreatedBy
+    const dateStr = r.created_at ? r.created_at.slice(0, 10) : ''
+    const matchDateFrom = !filterDateFrom || dateStr >= filterDateFrom
+    const matchDateTo = !filterDateTo || dateStr <= filterDateTo
     const q = search.trim().toLowerCase()
     const matchSearch =
       !q ||
       (r.name ?? '').toLowerCase().includes(q) ||
       (r.info ?? '').toLowerCase().includes(q) ||
+      (r.notes ?? '').toLowerCase().includes(q) ||
       (r.page_title ?? '').toLowerCase().includes(q) ||
       (r.page_url ?? '').toLowerCase().includes(q) ||
       (page?.site_name ?? '').toLowerCase().includes(q)
-    return matchSite && matchSearch
+    return matchSite && matchPage && matchCreatedBy && matchDateFrom && matchDateTo && matchSearch
   })
 
   return (
@@ -225,6 +241,17 @@ export function AddParsed() {
             placeholder="Additional info"
           />
         </div>
+        <div className="form-group">
+          <label htmlFor="parsed-notes">Notes (internal)</label>
+          <textarea
+            id="parsed-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Internal notes or comments..."
+            rows={2}
+            className="form-input"
+          />
+        </div>
         <div className="form-group checkbox-row">
           <input
             id="parsed-verified"
@@ -278,14 +305,59 @@ export function AddParsed() {
             value={filterSiteId}
             onChange={(e) => setFilterSiteId(e.target.value)}
             className="list-section-filter"
+            aria-label="Filter by site"
           >
-            <option value="">All websites</option>
+            <option value="">All sites</option>
             {sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
               </option>
             ))}
           </select>
+          <select
+            value={filterPageId}
+            onChange={(e) => setFilterPageId(e.target.value)}
+            className="list-section-filter"
+            aria-label="Filter by page"
+          >
+            <option value="">All pages</option>
+            {pages.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title || p.url} {p.site_name ? `(${p.site_name})` : ''}
+              </option>
+            ))}
+          </select>
+          {isAdmin && users.length > 0 && (
+            <select
+              value={filterCreatedBy}
+              onChange={(e) => setFilterCreatedBy(e.target.value)}
+              className="list-section-filter"
+              aria-label="Filter by creator"
+            >
+              <option value="">All users</option>
+              {users.filter((u) => !u.is_guest).map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.username}
+                </option>
+              ))}
+            </select>
+          )}
+          <input
+            type="date"
+            value={filterDateFrom}
+            onChange={(e) => setFilterDateFrom(e.target.value)}
+            className="list-section-filter list-section-date"
+            aria-label="Date from"
+            title="Created from"
+          />
+          <input
+            type="date"
+            value={filterDateTo}
+            onChange={(e) => setFilterDateTo(e.target.value)}
+            className="list-section-filter list-section-date"
+            aria-label="Date to"
+            title="Created to"
+          />
         </div>
         {loading ? (
           <p>Loading…</p>
@@ -308,6 +380,12 @@ export function AddParsed() {
                     <>
                       <br />
                       <small>{r.info}</small>
+                    </>
+                  )}
+                  {r.notes && (
+                    <>
+                      <br />
+                      <small className="list-item-notes">Notes: {r.notes}</small>
                     </>
                   )}
                   <div className="list-item-meta">

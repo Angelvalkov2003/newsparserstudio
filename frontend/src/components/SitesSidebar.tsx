@@ -5,10 +5,13 @@ import {
   fetchPages,
   fetchParsed,
   getPage,
+  fetchUsers,
   type Site,
   type PageWithSite,
   type ParsedWithPage,
+  type UserPublic,
 } from '../api'
+import { useIsAdmin } from '../context/authContext'
 import './SitesSidebar.css'
 
 function matchSearch(text: string, q: string): boolean {
@@ -22,25 +25,26 @@ import { REFRESH_SIDEBAR_EVENT } from '../utils/sidebarRefresh'
 export function SitesSidebar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const isAdmin = useIsAdmin()
   const [searchParams, setSearchParams] = useSearchParams()
   const [sites, setSites] = useState<Site[]>([])
+  const [users, setUsers] = useState<UserPublic[]>([])
+  const [adminFilterUserId, setAdminFilterUserId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [expandedSiteId, setExpandedSiteId] = useState<number | null>(null)
-  const [selectedPageId, setSelectedPageId] = useState<number | null>(null)
-  const [pagesBySite, setPagesBySite] = useState<Record<number, PageWithSite[]>>({})
-  const [parsedByPage, setParsedByPage] = useState<Record<number, ParsedWithPage[]>>({})
+  const [expandedSiteId, setExpandedSiteId] = useState<string | null>(null)
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
+  const [pagesBySite, setPagesBySite] = useState<Record<string, PageWithSite[]>>({})
+  const [parsedByPage, setParsedByPage] = useState<Record<string, ParsedWithPage[]>>({})
   const [loading, setLoading] = useState(true)
-  const [loadingPages, setLoadingPages] = useState<number | null>(null)
-  const [loadingParsed, setLoadingParsed] = useState<number | null>(null)
+  const [loadingPages, setLoadingPages] = useState<string | null>(null)
+  const [loadingParsed, setLoadingParsed] = useState<string | null>(null)
 
   // Sync from URL: when pageId is in URL, expand site and select page, load pages + parsed
   useEffect(() => {
     const pageIdParam = searchParams.get('pageId')
     if (!pageIdParam) return
-    const numId = Number(pageIdParam)
-    if (!numId) return
     let cancelled = false
-    getPage(numId)
+    getPage(pageIdParam)
       .then((page) => {
         if (cancelled) return
         setExpandedSiteId(page.site_id)
@@ -60,8 +64,8 @@ export function SitesSidebar() {
 
   function refreshSites(
     setSites: (s: Site[] | ((prev: Site[]) => Site[])) => void,
-    setPagesBySite: (p: Record<number, PageWithSite[]> | ((prev: Record<number, PageWithSite[]>) => Record<number, PageWithSite[]>)) => void,
-    setParsedByPage: (p: Record<number, ParsedWithPage[]> | ((prev: Record<number, ParsedWithPage[]>) => Record<number, ParsedWithPage[]>)) => void,
+    setPagesBySite: (p: Record<string, PageWithSite[]> | ((prev: Record<string, PageWithSite[]>) => Record<string, PageWithSite[]>)) => void,
+    setParsedByPage: (p: Record<string, ParsedWithPage[]> | ((prev: Record<string, ParsedWithPage[]>) => Record<string, ParsedWithPage[]>)) => void,
     setLoading: (l: boolean) => void
   ) {
     setLoading(true)
@@ -87,12 +91,22 @@ export function SitesSidebar() {
     return () => window.removeEventListener(REFRESH_SIDEBAR_EVENT, handler)
   }, [])
 
+  // Admin: load users for "Content from" filter
+  useEffect(() => {
+    if (!isAdmin) return
+    fetchUsers().then(setUsers).catch(() => {})
+  }, [isAdmin])
+
   const filteredSites = useMemo(() => {
-    if (!search.trim()) return sites
-    return sites.filter(
+    let list = sites
+    if (isAdmin && adminFilterUserId) {
+      list = list.filter((s) => s.created_by === adminFilterUserId)
+    }
+    if (!search.trim()) return list
+    return list.filter(
       (s) => matchSearch(s.name, search) || matchSearch(s.url, search)
     )
-  }, [sites, search])
+  }, [sites, search, isAdmin, adminFilterUserId])
 
   useEffect(() => {
     if (expandedSiteId == null) return
@@ -122,18 +136,22 @@ export function SitesSidebar() {
 
   const pages = expandedSiteId != null ? pagesBySite[expandedSiteId] ?? [] : []
   const filteredPages = useMemo(() => {
-    if (!search.trim()) return pages
-    return pages.filter(
+    let list = pages
+    if (isAdmin && adminFilterUserId) {
+      list = list.filter((p) => p.created_by === adminFilterUserId)
+    }
+    if (!search.trim()) return list
+    return list.filter(
       (p) =>
         matchSearch(p.title ?? '', search) ||
         matchSearch(p.url, search) ||
         matchSearch(p.site_name ?? '', search)
     )
-  }, [pages, search])
+  }, [pages, search, isAdmin, adminFilterUserId])
 
   const parsedList = selectedPageId != null ? parsedByPage[selectedPageId] ?? [] : []
 
-  const toggleSite = (id: number) => {
+  const toggleSite = (id: string) => {
     setExpandedSiteId((prev) => (prev === id ? null : id))
     setSelectedPageId(null)
     setSearchParams((prev) => {
@@ -143,14 +161,33 @@ export function SitesSidebar() {
     })
   }
 
-  const selectPage = (id: number) => {
+  const selectPage = (id: string) => {
     setSelectedPageId((prev) => (prev === id ? null : id))
-    // Navigate to Editor so the dropdown and editor are visible
     navigate(`/?pageId=${id}`)
   }
 
   return (
     <aside className="sites-sidebar">
+      {isAdmin && users.length > 0 && (
+        <div className="sites-sidebar-admin-filter">
+          <label htmlFor="admin-filter-user" className="sites-sidebar-admin-filter-label">
+            Content from
+          </label>
+          <select
+            id="admin-filter-user"
+            className="sites-sidebar-admin-filter-select"
+            value={adminFilterUserId ?? ''}
+            onChange={(e) => setAdminFilterUserId(e.target.value || null)}
+          >
+            <option value="">All users</option>
+            {users.filter((u) => !u.is_guest).map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.username}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="sites-sidebar-search">
         <input
           type="search"
@@ -178,7 +215,10 @@ export function SitesSidebar() {
                     className={`sites-sidebar-site-btn ${isExpanded ? 'expanded' : ''}`}
                     onClick={() => toggleSite(site.id)}
                   >
-                    <span className="sites-sidebar-site-name">{site.name}</span>
+                    <span className="sites-sidebar-site-name">
+                      {site.name}
+                      {site.created_by_username && ` · ${site.created_by_username}`}
+                    </span>
                     <span className="sites-sidebar-chevron">{isExpanded ? '▼' : '▶'}</span>
                   </button>
                   {isExpanded && (
@@ -198,6 +238,7 @@ export function SitesSidebar() {
                                 onClick={() => selectPage(page.id)}
                               >
                                 {page.title || page.url}
+                                {page.created_by_username && ` · ${page.created_by_username}`}
                               </button>
                               {isSelected && (
                                 <ul className="sites-sidebar-parsed">
@@ -210,6 +251,7 @@ export function SitesSidebar() {
                                       <li key={r.id} className="sites-sidebar-parsed-item">
                                         <span className="sites-sidebar-parsed-name">
                                           {r.name || `#${r.id}`}
+                                          {r.created_by_username && ` · ${r.created_by_username}`}
                                         </span>
                                         {r.is_verified && (
                                           <span className="sites-sidebar-parsed-verified" title="Data correct">

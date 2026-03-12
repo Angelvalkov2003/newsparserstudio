@@ -13,8 +13,8 @@ interface PreviewPanelProps {
   dispatch: Dispatch<ArticleEditorAction>;
   pageUrl: string;
   verifiedList: ParsedWithPage[];
-  selectedReference: "url" | number;
-  onReferenceChange: (value: "url" | number) => void;
+  selectedReference: "url" | string;
+  onReferenceChange: (value: "url" | string) => void;
   /** Download the current reference (verified parsed) as JSON file */
   onDownloadReference?: () => void;
 }
@@ -41,7 +41,7 @@ export function PreviewPanel({
 
   // When reference is a parsed id, fetch its data
   useEffect(() => {
-    if (typeof selectedReference !== "number") {
+    if (typeof selectedReference !== "string") {
       setReferenceData(null);
       return;
     }
@@ -72,7 +72,7 @@ export function PreviewPanel({
     if (v === "url") {
       onReferenceChange("url");
     } else {
-      onReferenceChange(Number(v));
+      onReferenceChange(v);
     }
   };
 
@@ -162,7 +162,7 @@ export function PreviewPanel({
         )}
       </div>
 
-      {hasPage && typeof selectedReference === "number" && onDownloadReference && (
+      {hasPage && typeof selectedReference === "string" && onDownloadReference && (
         <div className="preview-panel-footer">
           <button
             type="button"

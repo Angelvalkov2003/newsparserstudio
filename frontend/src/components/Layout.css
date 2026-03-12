@@ -322,6 +322,10 @@
   outline-offset: 2px;
 }
 
+.list-section-date {
+  max-width: 11rem;
+}
+
 .list-item {
   padding: 0.75rem;
   background: var(--editor-card-bg);

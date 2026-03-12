@@ -19,6 +19,7 @@ export type Page = {
   title: string | null
   url: string
   site_id: string
+  notes: string | null
   created_by?: string | null
   allowed_for?: string[]
   created_by_username?: string | null
@@ -34,6 +35,7 @@ export type Parsed = {
   data: string
   info: string | null
   is_verified: boolean
+  notes: string | null
   created_by?: string | null
   allowed_for?: string[]
   created_by_username?: string | null
@@ -44,9 +46,15 @@ export type Parsed = {
 export type ParsedWithPage = Parsed & { page_title: string | null; page_url: string | null }
 
 let authToken: string | null = null
+let onUnauthorized: (() => void) | null = null
 
 export function setAuthToken(token: string | null) {
   authToken = token
+}
+
+/** Called when any authenticated request gets 401. AuthProvider should clear session and set a message. */
+export function setOnUnauthorized(fn: (() => void) | null) {
+  onUnauthorized = fn
 }
 
 function getAuthHeaders(): Record<string, string> {
@@ -61,21 +69,33 @@ function getAuthHeadersNoBody(): Record<string, string> {
   return h
 }
 
+const SESSION_EXPIRED_MESSAGE = 'Сесията изтече. Моля, влезте отново.'
+
+/** Authenticated request: on 401 calls onUnauthorized and throws; on other errors throws with body. */
+async function apiRequest(input: RequestInfo, init?: RequestInit): Promise<Response> {
+  const r = await fetch(input, init)
+  if (r.status === 401) {
+    onUnauthorized?.()
+    throw new Error(SESSION_EXPIRED_MESSAGE)
+  }
+  return r
+}
+
 export async function fetchSites(sort?: 'created_by' | 'created_at'): Promise<Site[]> {
   const url = sort ? `${API}/sites?sort=${encodeURIComponent(sort)}` : `${API}/sites`
-  const r = await fetch(url, { headers: getAuthHeadersNoBody() })
+  const r = await apiRequest(url, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
 
 export async function getSite(id: string): Promise<Site> {
-  const r = await fetch(`${API}/sites/${id}`, { headers: getAuthHeadersNoBody() })
+  const r = await apiRequest(`${API}/sites/${id}`, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
 
 export async function createSite(name: string, url: string): Promise<Site> {
-  const r = await fetch(`${API}/sites`, {
+  const r = await apiRequest(`${API}/sites`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ name, url }),
@@ -92,7 +112,7 @@ export async function updateSite(
 ): Promise<Site> {
   const body: { name: string; url: string; allowed_for?: string[] } = { name, url }
   if (allowed_for !== undefined) body.allowed_for = allowed_for
-  const r = await fetch(`${API}/sites/${id}`, {
+  const r = await apiRequest(`${API}/sites/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(body),
@@ -102,7 +122,7 @@ export async function updateSite(
 }
 
 export async function deleteSite(id: string): Promise<void> {
-  const r = await fetch(`${API}/sites/${id}`, {
+  const r = await apiRequest(`${API}/sites/${id}`, {
     method: 'DELETE',
     headers: getAuthHeadersNoBody(),
   })
@@ -118,13 +138,13 @@ export async function fetchPages(
   if (sort) params.set('sort', sort)
   const q = params.toString()
   const url = q ? `${API}/pages?${q}` : `${API}/pages`
-  const r = await fetch(url, { headers: getAuthHeadersNoBody() })
+  const r = await apiRequest(url, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
 
 export async function getPage(id: string): Promise<PageWithSite> {
-  const r = await fetch(`${API}/pages/${id}`, { headers: getAuthHeadersNoBody() })
+  const r = await apiRequest(`${API}/pages/${id}`, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
@@ -132,12 +152,13 @@ export async function getPage(id: string): Promise<PageWithSite> {
 export async function createPage(
   title: string | null,
   url: string,
-  site_id: string
+  site_id: string,
+  notes?: string | null
 ): Promise<Page> {
-  const r = await fetch(`${API}/pages`, {
+  const r = await apiRequest(`${API}/pages`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ title: title || null, url, site_id }),
+    body: JSON.stringify({ title: title || null, url, site_id, notes: notes || null }),
   })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
@@ -148,15 +169,17 @@ export async function updatePage(
   title: string | null,
   url: string,
   site_id: string,
-  allowed_for?: string[]
+  allowed_for?: string[],
+  notes?: string | null
 ): Promise<Page> {
-  const body: { title: string | null; url: string; site_id: string; allowed_for?: string[] } = {
+  const body: { title: string | null; url: string; site_id: string; allowed_for?: string[]; notes?: string | null } = {
     title: title || null,
     url,
     site_id,
+    notes: notes ?? null,
   }
   if (allowed_for !== undefined) body.allowed_for = allowed_for
-  const r = await fetch(`${API}/pages/${id}`, {
+  const r = await apiRequest(`${API}/pages/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(body),
@@ -166,7 +189,7 @@ export async function updatePage(
 }
 
 export async function deletePage(id: string): Promise<void> {
-  const r = await fetch(`${API}/pages/${id}`, {
+  const r = await apiRequest(`${API}/pages/${id}`, {
     method: 'DELETE',
     headers: getAuthHeadersNoBody(),
   })
@@ -182,13 +205,13 @@ export async function fetchParsed(
   if (sort) params.set('sort', sort)
   const q = params.toString()
   const url = q ? `${API}/parsed?${q}` : `${API}/parsed`
-  const r = await fetch(url, { headers: getAuthHeadersNoBody() })
+  const r = await apiRequest(url, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
 
 export async function getParsed(id: string): Promise<ParsedWithPage> {
-  const r = await fetch(`${API}/parsed/${id}`, { headers: getAuthHeadersNoBody() })
+  const r = await apiRequest(`${API}/parsed/${id}`, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
@@ -198,9 +221,10 @@ export async function createParsed(
   name: string | null,
   data: string,
   info: string | null,
-  is_verified: boolean
+  is_verified: boolean,
+  notes?: string | null
 ): Promise<Parsed> {
-  const r = await fetch(`${API}/parsed`, {
+  const r = await apiRequest(`${API}/parsed`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({
@@ -209,10 +233,12 @@ export async function createParsed(
       data,
       info: info || null,
       is_verified,
+      notes: notes || null,
     }),
   })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Create parsed failed')
+  return JSON.parse(text) as Parsed
 }
 
 export async function updateParsed(
@@ -222,7 +248,8 @@ export async function updateParsed(
   data: string,
   info: string | null,
   is_verified: boolean,
-  allowed_for?: string[]
+  allowed_for?: string[],
+  notes?: string | null
 ): Promise<Parsed> {
   const body: {
     page_id: string
@@ -231,25 +258,28 @@ export async function updateParsed(
     info: string | null
     is_verified: boolean
     allowed_for?: string[]
+    notes?: string | null
   } = {
     page_id,
     name: name || null,
     data,
     info: info || null,
     is_verified,
+    notes: notes ?? null,
   }
   if (allowed_for !== undefined) body.allowed_for = allowed_for
-  const r = await fetch(`${API}/parsed/${id}`, {
+  const r = await apiRequest(`${API}/parsed/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(body),
   })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Update parsed failed')
+  return JSON.parse(text) as Parsed
 }
 
 export async function deleteParsed(id: string): Promise<void> {
-  const r = await fetch(`${API}/parsed/${id}`, {
+  const r = await apiRequest(`${API}/parsed/${id}`, {
     method: 'DELETE',
     headers: getAuthHeadersNoBody(),
   })
@@ -261,10 +291,12 @@ export type ParsedBulkItem = {
   data: string | object
   info?: string | null
   is_verified?: boolean
+  notes?: string | null
 }
 export type PageBulkItem = {
   title?: string | null
   url: string
+  notes?: string | null
   parsed?: ParsedBulkItem[]
 }
 export type SiteBulkItem = {
@@ -283,7 +315,7 @@ export type ImportBulkResult = {
 }
 
 export async function importBulk(payload: { sites: SiteBulkItem[] }): Promise<ImportBulkResult> {
-  const r = await fetch(`${API}/import-bulk`, {
+  const r = await apiRequest(`${API}/import-bulk`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -319,7 +351,6 @@ export type UserPublic = {
   id: string
   username: string
   role: string
-  is_verified_by_admin: boolean
   is_guest: boolean
 }
 
@@ -370,6 +401,10 @@ export async function authGuestResume(guestId: string): Promise<LoginResponse> {
 
 export async function authMe(): Promise<UserPublic> {
   const r = await fetchWithTimeout(`${API}/auth/me`, { headers: getAuthHeadersNoBody() }, 8000)
+  if (r.status === 401) {
+    onUnauthorized?.()
+    throw new Error(SESSION_EXPIRED_MESSAGE)
+  }
   const text = await r.text()
   if (!r.ok) throw new Error(getErrorFromResponse(text) || 'Not authenticated')
   return JSON.parse(text) as UserPublic
@@ -377,7 +412,7 @@ export async function authMe(): Promise<UserPublic> {
 
 // --- Users API (admin) ---
 export async function fetchUsers(): Promise<UserPublic[]> {
-  const r = await fetch(`${API}/users`, { headers: getAuthHeadersNoBody() })
+  const r = await apiRequest(`${API}/users`, { headers: getAuthHeadersNoBody() })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }
@@ -387,7 +422,7 @@ export async function createUser(
   password: string,
   role: string
 ): Promise<UserPublic> {
-  const r = await fetch(`${API}/users`, {
+  const r = await apiRequest(`${API}/users`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ username, password, role }),
@@ -399,9 +434,9 @@ export async function createUser(
 
 export async function updateUser(
   userId: string,
-  updates: { role?: string; is_verified_by_admin?: boolean }
+  updates: { role?: string }
 ): Promise<UserPublic> {
-  const r = await fetch(`${API}/users/${userId}`, {
+  const r = await apiRequest(`${API}/users/${userId}`, {
     method: 'PATCH',
     headers: getAuthHeaders(),
     body: JSON.stringify(updates),

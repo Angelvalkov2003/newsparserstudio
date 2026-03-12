@@ -16,6 +16,11 @@ export type {
   CitationComponent,
   FootnoteComponent,
   HorizontalRulerComponent,
+  ListItemComponent,
+  ListComponent,
+  PollComponent,
+  TableComponent,
+  VideoComponent,
 } from "./article";
 
 export {
@@ -29,5 +34,9 @@ export {
   isCitation,
   isFootnote,
   isHorizontalRuler,
+  isList,
+  isPoll,
+  isTable,
+  isVideo,
   getComponentType,
 } from "./article";

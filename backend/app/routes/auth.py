@@ -26,7 +26,6 @@ class UserPublic(BaseModel):
     id: str
     username: str
     role: str
-    is_verified_by_admin: bool
     is_guest: bool
 
 
@@ -41,7 +40,6 @@ def _doc_to_public(doc: dict) -> UserPublic:
         id=str(doc["_id"]),
         username=doc["username"],
         role=doc.get("role", "regular"),
-        is_verified_by_admin=doc.get("is_verified_by_admin", False),
         is_guest=doc.get("is_guest", False),
     )
 
@@ -56,6 +54,13 @@ def _get_current_user_id_and_role(
     if not payload or "sub" not in payload:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return payload["sub"], payload.get("role", "regular")
+
+
+def user_can_access(doc: dict, user_id: str, role: str) -> bool:
+    """True if user (or admin) can access the document (doc has allowed_for list)."""
+    if role == "admin":
+        return True
+    return user_id in (doc.get("allowed_for") or [])
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -79,7 +84,6 @@ def guest():
         "username": username,
         "hashed_password": "",
         "role": "guest",
-        "is_verified_by_admin": False,
         "is_guest": True,
     }
     result = db["users"].insert_one(doc)

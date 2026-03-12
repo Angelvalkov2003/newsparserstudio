@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   setAuthToken,
+  setOnUnauthorized,
   authLogin,
   authGuest,
   authGuestResume,
@@ -19,7 +20,6 @@ export interface CurrentUser {
   name: string
   role: UserRole
   isGuest?: boolean
-  isVerifiedByAdmin?: boolean
 }
 
 interface AuthContextValue {
@@ -28,6 +28,9 @@ interface AuthContextValue {
   loginAsGuest: () => Promise<void>
   logout: () => void
   loading: boolean
+  /** Shown on login page after 401 (e.g. "Сесията изтече. Моля, влезте отново."). */
+  sessionExpiredMessage: string | null
+  clearSessionExpiredMessage: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -38,7 +41,6 @@ function userPublicToCurrent(u: UserPublic): CurrentUser {
     name: u.username,
     role: (u.role as UserRole) || 'regular',
     isGuest: u.is_guest,
-    isVerifiedByAdmin: u.is_verified_by_admin,
   }
 }
 
@@ -69,9 +71,22 @@ function loadStoredGuestId(): string | null {
   }
 }
 
+const SESSION_EXPIRED_TEXT = 'Сесията изтече. Моля, влезте отново.'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      setSessionExpiredMessage(SESSION_EXPIRED_TEXT)
+      setAuthToken(null)
+      setCurrentUser(null)
+      saveStored(null, null)
+    })
+    return () => setOnUnauthorized(null)
+  }, [])
 
   useEffect(() => {
     const token = loadStoredToken()
@@ -95,10 +110,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false))
   }, [])
 
+  const clearSessionExpiredMessage = useCallback(() => {
+    setSessionExpiredMessage(null)
+  }, [])
+
   const login = useCallback(
     async (name: string, password: string): Promise<{ success: boolean; error?: string }> => {
       if (!name.trim()) return { success: false, error: 'Enter username.' }
       if (!password) return { success: false, error: 'Enter password.' }
+      setSessionExpiredMessage(null)
       try {
         const res = await authLogin(name.trim(), password)
         setAuthToken(res.access_token)
@@ -157,6 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginAsGuest,
     logout,
     loading,
+    sessionExpiredMessage,
+    clearSessionExpiredMessage,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

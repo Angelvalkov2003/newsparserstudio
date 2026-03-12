@@ -3,11 +3,15 @@ import { useAuth } from '../context/authContext'
 import './LoginPage.css'
 
 export function LoginPage() {
-  const { login, loginAsGuest } = useAuth()
+  const { login, loginAsGuest, sessionExpiredMessage, clearSessionExpiredMessage } = useAuth()
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const clearSessionMessageOnInteraction = () => {
+    if (sessionExpiredMessage) clearSessionExpiredMessage()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,6 +47,12 @@ export function LoginPage() {
         <h1 className="login-title">Login</h1>
         <p className="login-subtitle">Universal Markdown Builder Studio</p>
 
+        {sessionExpiredMessage && (
+          <p className="login-session-expired" role="alert">
+            {sessionExpiredMessage}
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="login-name">Username</label>
@@ -50,7 +60,8 @@ export function LoginPage() {
               id="login-name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); clearSessionMessageOnInteraction() }}
+              onFocus={clearSessionMessageOnInteraction}
               placeholder="Username"
               autoComplete="username"
               disabled={submitting}
@@ -62,7 +73,8 @@ export function LoginPage() {
               id="login-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); clearSessionMessageOnInteraction() }}
+              onFocus={clearSessionMessageOnInteraction}
               placeholder="Password"
               autoComplete="current-password"
               disabled={submitting}

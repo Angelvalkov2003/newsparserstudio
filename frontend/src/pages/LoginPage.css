@@ -30,6 +30,16 @@
   color: var(--editor-muted, #666);
 }
 
+.login-session-expired {
+  margin: 0 0 1rem 0;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--editor-fg);
+  background: var(--editor-toolbar-bg, #f5f5f5);
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+}
+
 .login-form {
   margin-bottom: 0;
 }

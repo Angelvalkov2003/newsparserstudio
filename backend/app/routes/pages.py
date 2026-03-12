@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.routes.auth import _get_current_user_id_and_role
+from app.routes.auth import _get_current_user_id_and_role, user_can_access
 
 router = APIRouter(prefix="/pages", tags=["pages"])
 
@@ -19,6 +19,7 @@ class PageCreate(BaseModel):
     title: str | None = None
     url: str
     site_id: str
+    notes: str | None = None
 
 
 class PageUpdate(BaseModel):
@@ -26,6 +27,7 @@ class PageUpdate(BaseModel):
     url: str
     site_id: str
     allowed_for: list[str] | None = None
+    notes: str | None = None
 
 
 class PageVisibilityUpdate(BaseModel):
@@ -38,6 +40,7 @@ def _doc_to_page(doc: dict, site_name: str | None = None) -> dict:
         "title": doc.get("title"),
         "url": doc["url"],
         "site_id": doc["site_id"],
+        "notes": doc.get("notes"),
         "created_by": doc.get("created_by"),
         "allowed_for": doc.get("allowed_for") or [],
         "created_at": doc.get("created_at", ""),
@@ -129,7 +132,7 @@ def get_page(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=404, detail="Not found")
     out = _doc_to_page(doc, _get_site_name(db, doc["site_id"]))
     return _enrich_pages_with_usernames(db, [out], role)[0]
@@ -146,13 +149,14 @@ def create_page(
     site = db["sites"].find_one({"_id": ObjectId(body.site_id)})
     if not site:
         raise HTTPException(status_code=400, detail="Site not found")
-    if role != "admin" and user_id not in (site.get("allowed_for") or []):
+    if not user_can_access(site, user_id, role):
         raise HTTPException(status_code=403, detail="No access to this site")
     now = datetime.now(timezone.utc).isoformat()
     doc = {
         "title": body.title.strip() if body.title else None,
         "url": body.url.strip(),
         "site_id": body.site_id,
+        "notes": body.notes.strip() if body.notes else None,
         "created_by": user_id,
         "allowed_for": [user_id],
         "created_at": now,
@@ -177,13 +181,14 @@ def update_page(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=403, detail="Forbidden")
     now = datetime.now(timezone.utc).isoformat()
     set_payload = {
         "title": body.title.strip() if body.title else None,
         "url": body.url.strip(),
         "site_id": body.site_id,
+        "notes": body.notes.strip() if body.notes else None,
         "updated_at": now,
     }
     if body.allowed_for is not None:
@@ -231,6 +236,6 @@ def delete_page(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if role != "admin" and user_id not in (doc.get("allowed_for") or []):
+    if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=403, detail="Forbidden")
     db["pages"].delete_one({"_id": ObjectId(page_id)})

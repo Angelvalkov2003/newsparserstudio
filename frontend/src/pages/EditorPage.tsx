@@ -12,7 +12,7 @@ import type { ArticleDataParsed } from '../types'
 import '../components/editor/EditorPanel.css'
 import '../components/preview/PreviewPanel.css'
 
-type ReferenceSelection = 'url' | number
+type ReferenceSelection = 'url' | string
 
 function sortByUpdatedAtDesc(a: ParsedWithPage, b: ParsedWithPage): number {
   return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
@@ -22,18 +22,18 @@ export function EditorPage() {
   const [state, dispatch] = useArticleEditor()
   const [searchParams] = useSearchParams()
   const pageIdParam = searchParams.get('pageId')
-  const pageId = pageIdParam ? Number(pageIdParam) : null
+  const pageId = pageIdParam || null
 
   const [page, setPage] = useState<PageWithSite | null>(null)
   const [unverifiedList, setUnverifiedList] = useState<ParsedWithPage[]>([])
   const [verifiedList, setVerifiedList] = useState<ParsedWithPage[]>([])
-  const [selectedUnverifiedId, setSelectedUnverifiedId] = useState<number | null>(null)
+  const [selectedUnverifiedId, setSelectedUnverifiedId] = useState<string | null>(null)
   const [selectedReference, setSelectedReference] = useState<ReferenceSelection>('url')
-  const [loadingPage, setLoadingPage] = useState(false)
+  const [, setLoadingPage] = useState(false)
   const [loadingParsed, setLoadingParsed] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [barError, setBarError] = useState<string | null>(null)
+  const [, setBarError] = useState<string | null>(null)
   const [leftPercent, setLeftPercent] = useState(50)
   const [dragging, setDragging] = useState(false)
   const editorRowRef = useRef<HTMLDivElement>(null)
@@ -110,7 +110,7 @@ export function EditorPage() {
 
   // Load selected unverified parsed into editor
   const loadUnverifiedIntoEditor = useCallback(
-    (parsedId: number, pageUrl: string) => {
+    (parsedId: string, pageUrl: string) => {
       getParsed(parsedId)
         .then((r) => {
           let data: ArticleDataParsed
@@ -141,7 +141,7 @@ export function EditorPage() {
     }
   }, [page?.url, selectedUnverifiedId, loadUnverifiedIntoEditor])
 
-  const handleSelectUnverified = (id: number | null) => {
+  const handleSelectUnverified = (id: string | null) => {
     setSelectedUnverifiedId(id)
     if (id != null && page) {
       loadUnverifiedIntoEditor(id, page.url)
@@ -198,7 +198,7 @@ export function EditorPage() {
       return
     }
     // Or save to the selected verified reference
-    if (typeof selectedReference === 'number') {
+    if (typeof selectedReference === 'string') {
       const verified = verifiedList.find((p) => p.id === selectedReference)
       if (!verified) {
         setSaving(false)
@@ -221,7 +221,7 @@ export function EditorPage() {
   }, [state.url, state.data_corrected])
 
   const handleDownloadReference = useCallback(() => {
-    if (typeof selectedReference !== 'number' || !page) return
+    if (typeof selectedReference !== 'string' || !page) return
     getParsed(selectedReference)
       .then((r) => {
         const raw = JSON.parse(r.data)
@@ -267,7 +267,6 @@ export function EditorPage() {
           <EditorPanel
             state={state}
             dispatch={dispatch}
-            pageUrl={page?.url ?? ''}
             unverifiedList={unverifiedList}
             selectedUnverifiedId={selectedUnverifiedId}
             onSelectUnverified={handleSelectUnverified}
@@ -279,7 +278,7 @@ export function EditorPage() {
             onVerify={handleVerify}
             verifying={verifying}
             showSaveParsed={pageId != null}
-            saveParsedDisabled={selectedUnverifiedId == null && typeof selectedReference !== 'number'}
+            saveParsedDisabled={selectedUnverifiedId == null && typeof selectedReference !== 'string'}
             onSaveParsed={handleSaveParsed}
             savingParsed={saving}
             onDownloadCurrentParsed={handleDownloadCurrentParsed}

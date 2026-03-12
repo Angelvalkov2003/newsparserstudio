@@ -4,7 +4,6 @@ import type {
   ArticleDataCorrected,
   ArticleMetadata,
   ArticleComponent,
-  NewsArticle,
 } from "../types";
 
 export interface LoadArticlePayload {
