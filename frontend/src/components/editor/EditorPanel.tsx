@@ -32,6 +32,9 @@ interface EditorPanelProps {
   showSaveAsUnique?: boolean;
   onSaveAsUnique?: () => void;
   savingAsUnique?: boolean;
+  /** Create a new unverified parsed for the current page and switch to it */
+  onAddNewParsed?: () => void;
+  addingNewParsed?: boolean;
 }
 
 export function EditorPanel({
@@ -55,6 +58,8 @@ export function EditorPanel({
   showSaveAsUnique = false,
   onSaveAsUnique,
   savingAsUnique = false,
+  onAddNewParsed,
+  addingNewParsed = false,
 }: EditorPanelProps) {
   const { data_corrected } = state;
   const loadInputRef = useRef<HTMLInputElement>(null);
@@ -106,9 +111,13 @@ export function EditorPanel({
               value={selectedUnverifiedId ?? ""}
               onChange={(e) => {
                 const v = e.target.value;
+                if (v === "__add_new__") {
+                  onAddNewParsed?.();
+                  return;
+                }
                 onSelectUnverified(v === "" ? null : v);
               }}
-              disabled={loadingParsed}
+              disabled={loadingParsed || addingNewParsed}
               aria-label="Select unverified parsed"
             >
               <option value="">— Select —</option>
@@ -117,9 +126,7 @@ export function EditorPanel({
                   {formatParsedLabel(p)}
                 </option>
               ))}
-              {!loadingParsed && unverifiedList.length === 0 && (
-                <option value="" disabled>No unverified parsed</option>
-              )}
+              <option value="__add_new__">+ Add new</option>
             </select>
           </label>
         </div>
@@ -159,7 +166,7 @@ export function EditorPanel({
             className="editor-panel-action-btn"
             onClick={onSaveAsUnique ?? undefined}
             disabled={savingAsUnique || !onSaveAsUnique}
-            title="Save document to Unique (website Unique, page Unique 0 your name)"
+            title="Save to website Unique, page Unique - your name"
           >
             {savingAsUnique ? "Saving…" : "Save"}
           </button>
@@ -189,7 +196,7 @@ export function EditorPanel({
               onClick={onSaveParsed}
               disabled={saveParsedDisabled || savingParsed}
             >
-              {savingParsed ? "Saving…" : "Save to page"}
+              {savingParsed ? "Saving…" : "Save"}
             </button>
           )}
         </div>

@@ -176,21 +176,16 @@ export function EditorPage() {
   )
 
   useEffect(() => {
-    if (page && selectedUnverifiedId != null) {
+    if (page && selectedUnverifiedId != null && selectedUnverifiedId !== '__add_new__') {
       loadUnverifiedIntoEditor(selectedUnverifiedId, page.url)
     }
   }, [page?.url, selectedUnverifiedId, loadUnverifiedIntoEditor])
 
   const handleSelectUnverified = (id: string | null) => {
     setSelectedUnverifiedId(id)
-    if (id != null && page) {
+    if (id != null && id !== '__add_new__' && page) {
       loadUnverifiedIntoEditor(id, page.url)
     }
-  }
-
-  const handleReferenceChange = (value: ReferenceSelection) => {
-    setSelectedReference(value)
-    setBarError(null)
   }
 
   const refetchParsed = useCallback(() => {
@@ -202,6 +197,30 @@ export function EditorPage() {
       setVerifiedList(verified)
     }).catch(() => {})
   }, [pageId])
+
+  const handleAddNewParsed = useCallback(() => {
+    if (!pageId || !page) return
+    setBarError(null)
+    setSelectedUnverifiedId('__add_new__')
+    const emptyData = getEmptyParsed()
+    const payload = { ...emptyData, sourceUrl: state.url || '' }
+    const dataStr = JSON.stringify(payload)
+    createParsed(pageId, null, dataStr, null, false)
+      .then((newParsed) => {
+        refetchParsed()
+        refreshSidebar()
+        setSelectedUnverifiedId(newParsed.id)
+      })
+      .catch((e) => {
+        setSelectedUnverifiedId(null)
+        setBarError(e instanceof Error ? e.message : 'Failed to create')
+      })
+  }, [pageId, page, state.url, refetchParsed])
+
+  const handleReferenceChange = (value: ReferenceSelection) => {
+    setSelectedReference(value)
+    setBarError(null)
+  }
 
   const handleVerify = useCallback(() => {
     if (!pageId || !page) return
@@ -278,8 +297,8 @@ export function EditorPage() {
     const doSave = (targetPage: PageWithSite) => {
       const payload = { ...state.data_corrected, sourceUrl: state.url || '' }
       const dataStr = JSON.stringify(payload)
-      const uniqueName = `Unique 0 ${currentUser.name || (isGuest ? 'Guest' : 'User')}`
-      return createParsed(targetPage.id, uniqueName, dataStr, null, false)
+      const parsedName = state.data_corrected.metadata?.title?.trim() || null
+      return createParsed(targetPage.id, parsedName, dataStr, null, false)
         .then((newParsed) => {
           refreshSidebar()
           if (pageId === targetPage.id) {
@@ -380,9 +399,11 @@ export function EditorPage() {
             onSaveParsed={handleSaveParsed}
             savingParsed={saving}
             onDownloadCurrentParsed={handleDownloadCurrentParsed}
-            showSaveAsUnique={(isGuest ? guestPage : uniquePage) != null}
+            showSaveAsUnique={!!currentUser}
             onSaveAsUnique={handleSaveAsUnique}
             savingAsUnique={saving}
+            onAddNewParsed={pageId ? handleAddNewParsed : undefined}
+            addingNewParsed={selectedUnverifiedId === '__add_new__'}
           />
         </aside>
         <div

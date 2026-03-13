@@ -38,6 +38,8 @@ Keep the window open. On success you will see: `Application startup complete`.
 
 **Check that the backend is up to date:** open **http://127.0.0.1:8000/api/health**. If you see `"special_routes": true`, the server has endpoints `/api/pages/special/guest` and `/special/unique`. If you get 404 or `special_routes` is missing, restart the backend from the `backend` folder (or check that no other process is using port 8000).
 
+**If you see "MongoDB unreachable" or "SSL handshake failed" (503):** the app cannot connect to MongoDB Atlas. Try: (1) In MongoDB Atlas → Network Access, add your current IP (or 0.0.0.0/0 for testing). (2) In `backend/.env` add a new line `USE_SYSTEM_TLS=1`, save, and restart the backend. (3) Turn off VPN if you use one. (4) Run `pip install "pymongo[tls]"` in the backend venv.
+
 ## 3. Adding records (users)
 
 ### Via Swagger UI

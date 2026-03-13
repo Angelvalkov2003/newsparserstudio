@@ -181,7 +181,7 @@ def get_or_create_guest_page(
 def get_or_create_unique_page(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ):
-    """For regular/admin users: return the 'Unique 0 <username>' page under the Unique site. Create if missing."""
+    """For regular/admin users: return the 'Unique - <username>' page under the Unique site. Create if missing."""
     try:
         user_id, role = _get_current_user_id_and_role(authorization)
     except HTTPException:
@@ -201,7 +201,7 @@ def get_or_create_unique_page(
         old_doc = db["pages"].find_one({"created_by": user_id, "site_id": None})
         if old_doc:
             now = datetime.now(timezone.utc).isoformat()
-            title = f"Unique 0 {username}"
+            title = f"Unique - {username}"
             db["pages"].update_one(
                 {"_id": old_doc["_id"]},
                 {"$set": {"site_id": unique_site_id, "title": title, "updated_at": now}},
@@ -213,7 +213,7 @@ def get_or_create_unique_page(
             return _enrich_pages_with_usernames(db, [out], role)[0]
         now = datetime.now(timezone.utc).isoformat()
         doc = {
-            "title": f"Unique 0 {username}",
+            "title": f"Unique - {username}",
             "url": "",
             "site_id": unique_site_id,
             "notes": None,

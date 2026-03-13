@@ -168,7 +168,10 @@ export function SitesSidebar() {
     setLoadingPages(expandedSiteId)
     fetchPages(expandedSiteId)
       .then((data) => {
-        if (!cancelled) setPagesBySite((prev) => ({ ...prev, [expandedSiteId]: data }))
+        if (!cancelled) setPagesBySite((prev) => ({ ...prev, [expandedSiteId]: data ?? [] }))
+      })
+      .catch(() => {
+        if (!cancelled) setPagesBySite((prev) => ({ ...prev, [expandedSiteId]: [] }))
       })
       .finally(() => { if (!cancelled) setLoadingPages(null) })
     return () => { cancelled = true }
@@ -181,7 +184,10 @@ export function SitesSidebar() {
     setLoadingParsed(selectedPageId)
     fetchParsed(selectedPageId)
       .then((data) => {
-        if (!cancelled) setParsedByPage((prev) => ({ ...prev, [selectedPageId]: data }))
+        if (!cancelled) setParsedByPage((prev) => ({ ...prev, [selectedPageId]: data ?? [] }))
+      })
+      .catch(() => {
+        if (!cancelled) setParsedByPage((prev) => ({ ...prev, [selectedPageId]: [] }))
       })
       .finally(() => { if (!cancelled) setLoadingParsed(null) })
     return () => { cancelled = true }

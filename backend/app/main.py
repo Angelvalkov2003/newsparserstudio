@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pymongo.errors import ServerSelectionTimeoutError
 
 from fastapi import APIRouter
 
 from app.config import MONGO_URL
-from app.database import connect_db, close_db, get_db
+from app.database import connect_db, close_db
 from app.routes.auth import router as auth_router
 from app.routes.app_users import router as app_users_router
 from app.routes.sites import router as sites_router
@@ -68,6 +69,17 @@ def health():
         "version": "0.4.0",
         "special_routes": True,
     }
+
+
+@app.exception_handler(ServerSelectionTimeoutError)
+def mongo_unreachable(_request, exc: ServerSelectionTimeoutError):
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "MongoDB unreachable (SSL or network). Try: 1) Atlas Network Access – add your IP; 2) In .env add USE_SYSTEM_TLS=1 and restart backend; 3) Turn VPN off.",
+        },
+    )
 
 
 @app.exception_handler(Exception)
