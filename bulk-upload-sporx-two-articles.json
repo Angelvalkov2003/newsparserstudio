@@ -1,11 +1,11 @@
 {
   "sites": [
     {
-      "name": "Sporx",
+      "name": "TestWeb",
       "url": "https://www.sporx.com/",
       "pages": [
         {
-          "title": "Marcus Rashford, Atletico Madrid maçında yok",
+          "title": "aak",
           "url": "https://www.sporx.com/marcus-rashford-atletico-madrid-macinda-yok-SXHBQ1150943SXQ",
           "parsed": [
             {
@@ -42,7 +42,7 @@
           ]
         },
         {
-          "title": "TOKİ iade parası ne zaman yatar, TOKİ'den vazgeçince başvuru bedeli geri ödeniyor mu?",
+          "title": "aaadsd mu?",
           "url": "https://www.sporx.com/toki-iade-parasi-ne-zaman-yatar-toki-den-vazgecince-basvuru-bedeli-geri-odeniyor-mu-SXHBQ1150941SXQ",
           "parsed": [
             {
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "name": "Finans Mynet",
+      "name": "asdasdas",
       "url": "https://finans.mynet.com/",
       "pages": [
         {
