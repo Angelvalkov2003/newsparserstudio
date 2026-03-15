@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.routes.auth import _get_current_user_id_and_role, user_can_access
+from app.routes.auth import _get_current_user_id_and_role, user_can_access, user_can_access_page
 from app.unique_site import get_or_create_unique_site
 
 router = APIRouter(prefix="/pages", tags=["pages"])
@@ -112,9 +112,11 @@ def list_pages(
             sort_key = [("created_at", -1)]
         cursor = db["pages"].find(query).sort(sort_key)
     else:
-        q = {"allowed_for": user_id}
+        # Pages user can access: directly (page allowed_for) or via site (site allowed_for)
+        site_ids = [str(s["_id"]) for s in db["sites"].find({"allowed_for": user_id}, {"_id": 1})]
+        q = {"$or": [{"allowed_for": user_id}, {"site_id": {"$in": site_ids}}]}
         if site_id:
-            q["site_id"] = site_id
+            q = {"site_id": site_id, "$or": [{"allowed_for": user_id}, {"site_id": {"$in": site_ids}}]}
         cursor = db["pages"].find(q)
     result = []
     for d in cursor:
@@ -247,7 +249,7 @@ def get_page(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if not user_can_access(doc, user_id, role):
+    if not user_can_access_page(doc, user_id, role, db):
         raise HTTPException(status_code=404, detail="Not found")
     out = _doc_to_page(doc, _get_site_name(db, doc.get("site_id")))
     return _enrich_pages_with_usernames(db, [out], role)[0]
@@ -296,7 +298,7 @@ def update_page(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if not user_can_access(doc, user_id, role):
+    if not user_can_access_page(doc, user_id, role, db):
         raise HTTPException(status_code=403, detail="Forbidden")
     now = datetime.now(timezone.utc).isoformat()
     set_payload = {
@@ -351,6 +353,6 @@ def delete_page(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
-    if not user_can_access(doc, user_id, role):
+    if not user_can_access_page(doc, user_id, role, db):
         raise HTTPException(status_code=403, detail="Forbidden")
     db["pages"].delete_one({"_id": ObjectId(page_id)})

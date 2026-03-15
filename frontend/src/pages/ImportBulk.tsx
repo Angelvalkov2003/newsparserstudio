@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react'
+import { Navigate } from 'react-router-dom'
 import { importBulk, type ImportBulkResult } from '../api'
+import { useIsAdmin } from '../context'
 import { refreshSidebar } from '../utils/sidebarRefresh'
 import '../components/Layout.css'
 
@@ -27,10 +29,15 @@ const EXAMPLE = {
 }
 
 export function ImportBulk() {
+  const isAdmin = useIsAdmin()
   const [result, setResult] = useState<ImportBulkResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

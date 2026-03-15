@@ -29,9 +29,6 @@ interface EditorPanelProps {
   onSaveParsed?: () => void;
   savingParsed?: boolean;
   onDownloadCurrentParsed?: () => void;
-  showSaveAsUnique?: boolean;
-  onSaveAsUnique?: () => void;
-  savingAsUnique?: boolean;
   /** Create a new unverified parsed for the current page and switch to it */
   onAddNewParsed?: () => void;
   addingNewParsed?: boolean;
@@ -55,9 +52,6 @@ export function EditorPanel({
   onSaveParsed,
   savingParsed = false,
   onDownloadCurrentParsed,
-  showSaveAsUnique = false,
-  onSaveAsUnique,
-  savingAsUnique = false,
   onAddNewParsed,
   addingNewParsed = false,
 }: EditorPanelProps) {
@@ -160,15 +154,6 @@ export function EditorPanel({
             onClick={handleLoadClick}
           >
             Load
-          </button>
-          <button
-            type="button"
-            className="editor-panel-action-btn"
-            onClick={onSaveAsUnique ?? undefined}
-            disabled={savingAsUnique || !onSaveAsUnique}
-            title="Save to website Unique, page Unique - your name"
-          >
-            {savingAsUnique ? "Saving…" : "Save"}
           </button>
           {onDownloadCurrentParsed && (
             <button

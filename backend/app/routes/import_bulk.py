@@ -42,7 +42,9 @@ def import_bulk(
     body: ImportBulkBody,
     authorization: str | None = Header(default=None, alias="Authorization"),
 ):
-    user_id, _ = _get_current_user_id_and_role(authorization)
+    user_id, role = _get_current_user_id_and_role(authorization)
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
     sites_created = sites_matched = pages_created = pages_matched = parsed_created = parsed_updated = 0

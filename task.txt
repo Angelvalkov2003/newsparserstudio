@@ -7,11 +7,12 @@ Universal Markdown Builder
 https://docs.google.com/spreadsheets/d/1qQkMP_qp0rSC1mJDL0-xbF6DpmUSFxDElc0XtrpVYsU/edit?gid=0#gid=0
 
 
-Достъп до сайт дава и од всички страници в него
-Скрии import bulk за Щзър
+Достъп до сайт дава и от всички страници в него
+Скрии import bulk за Юзър
 Една verified на потребител
 mahni единия SAve
 verify are you sure buton
+
 като нормален Юзър направи нов Верифай трием другите с Verified на него
 Verified в дясно да излиза до него името на човека
 Направи ReadOnly само за админ Compare verified избира статия и му излизат в ляво и дясно вискчи Verified

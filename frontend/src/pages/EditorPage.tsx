@@ -5,7 +5,7 @@ import { buildLoadPayload, getEmptyParsed } from '../state/articleEditorState'
 import { EditorPanel } from '../components/editor'
 import { PreviewPanel } from '../components/preview'
 import { getPage, getParsed, fetchParsed, createParsed, updateParsed, getGuestPage, getUniquePage, type PageWithSite, type ParsedWithPage } from '../api'
-import { useCurrentUser } from '../context'
+import { useCurrentUser, useIsAdmin } from '../context'
 import { parseDataParsedLike, type ParseArticleFileResult } from '../components/editor/UploadArticleButton'
 import { downloadParsedFile } from '../utils/downloadCorrectedJson'
 import { refreshSidebar } from '../utils/sidebarRefresh'
@@ -22,6 +22,7 @@ function sortByUpdatedAtDesc(a: ParsedWithPage, b: ParsedWithPage): number {
 export function EditorPage() {
   const [state, dispatch] = useArticleEditor()
   const currentUser = useCurrentUser()
+  const isAdmin = useIsAdmin()
   const isGuest = currentUser?.role === 'guest' || currentUser?.isGuest === true
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -224,6 +225,7 @@ export function EditorPage() {
 
   const handleVerify = useCallback(() => {
     if (!pageId || !page) return
+    if (!window.confirm('Are you sure you want to verify this? A new verified (reference) copy will be created.')) return
     setBarError(null)
     setVerifying(true)
     const payload = { ...state.data_corrected, sourceUrl: state.url || '' }
@@ -399,9 +401,6 @@ export function EditorPage() {
             onSaveParsed={handleSaveParsed}
             savingParsed={saving}
             onDownloadCurrentParsed={handleDownloadCurrentParsed}
-            showSaveAsUnique={!!currentUser}
-            onSaveAsUnique={handleSaveAsUnique}
-            savingAsUnique={saving}
             onAddNewParsed={pageId ? handleAddNewParsed : undefined}
             addingNewParsed={selectedUnverifiedId === '__add_new__'}
           />
@@ -418,7 +417,15 @@ export function EditorPage() {
             state={state}
             dispatch={dispatch}
             pageUrl={page?.url ?? ''}
-            verifiedList={verifiedList}
+            verifiedList={
+              isAdmin
+                ? verifiedList
+                : selectedReference !== 'url' && verifiedList.some((p) => p.id === selectedReference)
+                  ? verifiedList.filter((p) => p.id === selectedReference)
+                  : verifiedList.length > 0
+                    ? [verifiedList[0]]
+                    : []
+            }
             selectedReference={selectedReference}
             onReferenceChange={handleReferenceChange}
             onDownloadReference={handleDownloadReference}

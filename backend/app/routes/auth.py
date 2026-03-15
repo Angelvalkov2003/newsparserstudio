@@ -63,6 +63,22 @@ def user_can_access(doc: dict, user_id: str, role: str) -> bool:
     return user_id in (doc.get("allowed_for") or [])
 
 
+def user_can_access_page(page_doc: dict, user_id: str, role: str, db) -> bool:
+    """True if user can access the page: directly (allowed_for) or via the page's site (site allowed_for)."""
+    if user_can_access(page_doc, user_id, role):
+        return True
+    site_id = page_doc.get("site_id")
+    if not site_id:
+        return False
+    try:
+        site = db["sites"].find_one({"_id": ObjectId(site_id)})
+    except Exception:
+        return False
+    if not site:
+        return False
+    return user_can_access(site, user_id, role)
+
+
 @router.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest):
     db = get_db()

@@ -42,10 +42,10 @@ export function Layout() {
                 Parsed
               </NavLink>
               )}
-              {!isGuest && (
-              <NavLink to="/import-bulk" className={({ isActive }) => (isActive ? 'active' : '')}>
-                Import bulk
-              </NavLink>
+              {!isGuest && isAdmin && (
+                <NavLink to="/import-bulk" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Import bulk
+                </NavLink>
               )}
               {!isGuest && isAdmin && (
                 <NavLink to="/users" className={({ isActive }) => (isActive ? 'active' : '')}>

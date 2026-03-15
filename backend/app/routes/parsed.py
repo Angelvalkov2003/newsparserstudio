@@ -6,7 +6,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.routes.auth import _get_current_user_id_and_role, user_can_access
+from app.routes.auth import _get_current_user_id_and_role, user_can_access, user_can_access_page
 
 router = APIRouter(prefix="/parsed", tags=["parsed"])
 
@@ -169,7 +169,12 @@ def list_parsed(
             sort_key = [("created_at", -1)]
         cursor = db["parsed"].find(query).sort(sort_key)
     else:
-        q = {"allowed_for": user_id}
+        if page_id:
+            page = db["pages"].find_one({"_id": ObjectId(page_id)})
+            if not page or not user_can_access_page(page, user_id, role, db):
+                raise HTTPException(status_code=403, detail="No access to this page")
+        # Normal user: only their own parsed (created_by), not shared-with-me
+        q = {"created_by": user_id}
         if page_id:
             q["page_id"] = page_id
         cursor = db["parsed"].find(q)
@@ -218,7 +223,7 @@ def create_parsed(
     page = db["pages"].find_one({"_id": ObjectId(body.page_id)})
     if not page:
         raise HTTPException(status_code=400, detail="Page not found")
-    if not user_can_access(page, user_id, role):
+    if not user_can_access_page(page, user_id, role, db):
         raise HTTPException(status_code=403, detail="No access to this page")
     _validate_parsed_data(body.data)
     now = datetime.now(timezone.utc).isoformat()
