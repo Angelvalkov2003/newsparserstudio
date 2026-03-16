@@ -10,6 +10,7 @@ import { AddParsed } from './pages/AddParsed'
 import { ImportBulk } from './pages/ImportBulk'
 import { UsersPage } from './pages/UsersPage'
 import { AdminPage } from './pages/AdminPage'
+import { CompareVerifiedPage } from './pages/CompareVerified'
 import './App.css'
 
 function AppRoutes() {
@@ -32,6 +33,7 @@ function AppRoutes() {
           <Route path="sites" element={<AddSite />} />
           <Route path="pages" element={<PagesPage />} />
           <Route path="parsed" element={<AddParsed />} />
+          <Route path="compare-verified" element={<CompareVerifiedPage />} />
           <Route path="import-bulk" element={<ImportBulk />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="admin" element={<AdminPage />} />

@@ -160,12 +160,23 @@ def update_site(
         raise HTTPException(status_code=403, detail="Forbidden")
     now = datetime.now(timezone.utc).isoformat()
     set_payload = {"name": body.name.strip(), "url": body.url.strip(), "updated_at": now}
+    previous_allowed_for = doc.get("allowed_for") or []
     if body.allowed_for is not None:
         if role != "admin":
             raise HTTPException(status_code=403, detail="Only admin can set visibility (allowed_for)")
         set_payload["allowed_for"] = body.allowed_for
     db["sites"].update_one({"_id": ObjectId(site_id)}, {"$set": set_payload})
     doc.update(set_payload)
+    # When site visibility changes, ensure all its pages include at least these users in their allowed_for.
+    # This gives pages under the site access "by default" for users who can see the site.
+    if "allowed_for" in set_payload:
+        new_allowed_for = set_payload["allowed_for"] or []
+        # Only apply if there is an actual change to avoid unnecessary writes
+        if set(previous_allowed_for) != set(new_allowed_for):
+            db["pages"].update_many(
+                {"site_id": site_id},
+                {"$addToSet": {"allowed_for": {"$each": new_allowed_for}}},
+            )
     return _doc_to_site(doc)
 
 
@@ -185,12 +196,21 @@ def set_site_visibility(
         raise HTTPException(status_code=400, detail="Invalid id")
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
+    now = datetime.now(timezone.utc).isoformat()
     db["sites"].update_one(
         {"_id": ObjectId(site_id)},
-        {"$set": {"allowed_for": body.allowed_for, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        {"$set": {"allowed_for": body.allowed_for, "updated_at": now}},
     )
+    # When site visibility changes, ensure all its pages include at least these users in their allowed_for,
+    # so that site access automatically grants page access by default.
+    new_allowed_for = body.allowed_for or []
+    if new_allowed_for:
+        db["pages"].update_many(
+            {"site_id": site_id},
+            {"$addToSet": {"allowed_for": {"$each": new_allowed_for}}},
+        )
     doc["allowed_for"] = body.allowed_for
-    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    doc["updated_at"] = now
     return _doc_to_site(doc)
 
 

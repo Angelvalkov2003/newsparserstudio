@@ -7,6 +7,7 @@ import { CorrectedPreview } from "./CorrectedPreview";
 import { formatParsedLabel } from "../../utils/formatParsedLabel";
 import { getParsed } from "../../api";
 import { parseDataParsedLike } from "../editor/UploadArticleButton";
+import { useIsAdmin } from "../../context";
 
 interface PreviewPanelProps {
   state: ArticleEditorState;
@@ -34,6 +35,7 @@ export function PreviewPanel({
   onDownloadReference,
 }: PreviewPanelProps) {
   const { url, data_corrected_loaded, activePreviewMode } = state;
+  const isAdmin = useIsAdmin();
   const [referenceData, setReferenceData] = useState<ArticleDataCorrected | null>(null);
   const [loadingReference, setLoadingReference] = useState(false);
   const articleUrl = url || pageUrl;
@@ -99,11 +101,19 @@ export function PreviewPanel({
                 aria-label="Reference: URL or verified parsed"
               >
                 <option value="url">URL</option>
-                {verifiedList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {formatParsedLabel(p)}
-                  </option>
-                ))}
+                {verifiedList.map((p) => {
+                  const base = formatParsedLabel(p);
+                  const by =
+                    isAdmin && (p.created_by_username || p.created_by)
+                      ? ` · ${p.created_by_username ?? p.created_by}`
+                      : "";
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {base}
+                      {by}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             {selectedReference === "url" && (

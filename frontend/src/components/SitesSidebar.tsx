@@ -209,6 +209,19 @@ export function SitesSidebar() {
   }, [pages, search, isAdmin, adminFilterUserId])
 
   const parsedList = selectedPageId != null ? parsedByPage[selectedPageId] ?? [] : []
+  const visibleParsedList = useMemo(() => {
+    // Admin: вижда всички версии
+    if (isAdmin) return parsedList
+    // Нормален юзър (не-гост): показваме само последния верифициран.
+    const verified = parsedList.filter((p) => p.is_verified)
+    if (verified.length === 0) {
+      // Ако още няма верифициран, показваме всички (обичайно ще са чернови).
+      return parsedList
+    }
+    const pickTime = (p: ParsedWithPage) => (p.updated_at || p.created_at || '')
+    const latest = verified.reduce((best, curr) => (pickTime(curr) > pickTime(best) ? curr : best), verified[0])
+    return [latest]
+  }, [parsedList, isAdmin])
   const guestParsedList = (isGuest && guestPage ? parsedByPage[guestPage.id] ?? [] : []).filter((p) => {
     if (!search.trim()) return true
     const q = search.trim().toLowerCase()
@@ -345,10 +358,10 @@ export function SitesSidebar() {
                                 <ul className="sites-sidebar-parsed">
                                   {loadingParsed === page.id ? (
                                     <li className="sites-sidebar-muted">Loading...</li>
-                                  ) : parsedList.length === 0 ? (
+                                  ) : visibleParsedList.length === 0 ? (
                                     <li className="sites-sidebar-muted">No parsed</li>
                                   ) : (
-                                    parsedList.map((r) => (
+                                    visibleParsedList.map((r) => (
                                       <li key={r.id} className="sites-sidebar-parsed-item">
                                         <span className="sites-sidebar-parsed-name">
                                           {r.name || `#${r.id}`}

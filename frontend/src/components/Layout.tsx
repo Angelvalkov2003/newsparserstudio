@@ -32,10 +32,15 @@ export function Layout() {
                   Sites
                 </NavLink>
               )}
-              {!isGuest && (
-              <NavLink to="/pages" className={({ isActive }) => (isActive ? 'active' : '')}>
-                Pages
-              </NavLink>
+              {!isGuest && isAdmin && (
+                <NavLink to="/compare-verified" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Compare verified
+                </NavLink>
+              )}
+              {!isGuest && isAdmin && (
+                <NavLink to="/pages" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Pages
+                </NavLink>
               )}
               {!isGuest && (
               <NavLink to="/parsed" className={({ isActive }) => (isActive ? 'active' : '')}>
