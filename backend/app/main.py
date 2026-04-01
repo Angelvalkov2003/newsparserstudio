@@ -16,6 +16,7 @@ from app.routes.sites import router as sites_router
 from app.routes.pages import router as pages_router
 from app.routes.parsed import router as parsed_router
 from app.routes.import_bulk import router as import_bulk_router
+from app.routes.sql_sync import router as sql_sync_router
 
 
 @asynccontextmanager
@@ -53,6 +54,7 @@ api_router.include_router(sites_router)
 api_router.include_router(pages_router)
 api_router.include_router(parsed_router)
 api_router.include_router(import_bulk_router)
+api_router.include_router(sql_sync_router)
 app.include_router(api_router)
 
 

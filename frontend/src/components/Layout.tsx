@@ -33,11 +33,6 @@ export function Layout() {
                 </NavLink>
               )}
               {!isGuest && isAdmin && (
-                <NavLink to="/compare-verified" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  Compare verified
-                </NavLink>
-              )}
-              {!isGuest && isAdmin && (
                 <NavLink to="/pages" className={({ isActive }) => (isActive ? 'active' : '')}>
                   Pages
                 </NavLink>
@@ -55,6 +50,11 @@ export function Layout() {
               {!isGuest && isAdmin && (
                 <NavLink to="/users" className={({ isActive }) => (isActive ? 'active' : '')}>
                   Users
+                </NavLink>
+              )}
+              {!isGuest && isAdmin && (
+                <NavLink to="/compare-verified" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  Compare verified
                 </NavLink>
               )}
             </nav>

@@ -61,8 +61,9 @@ def _validate_parsed_data(data_str: str) -> None:
                 status_code=422,
                 detail=f"data: components[{i}].type '{c['type']}' is not valid. Allowed: {sorted(VALID_COMPONENT_TYPES)}.",
             )
-        if "id" not in c or not isinstance(c.get("id"), str):
-            raise HTTPException(status_code=422, detail=f"data: components[{i}] must have a string 'id'.")
+        # component.id is optional (older/newer parser templates may omit it)
+        if "id" in c and not isinstance(c.get("id"), str):
+            raise HTTPException(status_code=422, detail=f"data: components[{i}].id must be a string when provided.")
 
 
 class ParsedCreate(BaseModel):
