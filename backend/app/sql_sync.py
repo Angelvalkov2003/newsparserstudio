@@ -18,6 +18,7 @@ from app.config import (
     SQL_SYNC_USER,
 )
 from app.database import get_db
+from app.parsed_normalize import normalize_parsed_data_object
 
 CHECKPOINT_NAME = "tpf2_parse_to_md"
 
@@ -34,55 +35,6 @@ def _pick_parse_time(parsed_obj: dict) -> str:
             if isinstance(val, str) and val.strip():
                 return val.strip()
     return _now_iso()
-
-
-def _normalize_parsed_obj(obj: dict) -> dict:
-    """
-    Normalize parser output to Studio shape:
-    - metadata is flat (title/authors/categories/tags)
-    - components are flat (no nested properties)
-    - id is optional
-    """
-    if not isinstance(obj, dict):
-        return {"metadata": {"title": "", "authors": [], "categories": [], "tags": []}, "components": []}
-
-    metadata = obj.get("metadata") or {}
-    if isinstance(metadata, dict) and isinstance(metadata.get("properties"), dict):
-        # Convert from {metadata: {type, properties: {...}}}
-        props = metadata.get("properties") or {}
-        out_meta = dict(props)
-        out_meta["title"] = metadata.get("title") or props.get("title") or ""
-    else:
-        out_meta = dict(metadata) if isinstance(metadata, dict) else {}
-
-    out_meta["authors"] = out_meta.get("authors") if isinstance(out_meta.get("authors"), list) else []
-    out_meta["categories"] = out_meta.get("categories") if isinstance(out_meta.get("categories"), list) else []
-    out_meta["tags"] = out_meta.get("tags") if isinstance(out_meta.get("tags"), list) else []
-    out_meta["title"] = out_meta.get("title") if isinstance(out_meta.get("title"), str) else ""
-
-    raw_components = obj.get("components")
-    if isinstance(raw_components, dict):
-        raw_components = raw_components.get("components")
-    if not isinstance(raw_components, list):
-        raw_components = []
-
-    components: list[dict] = []
-    for i, c in enumerate(raw_components):
-        if not isinstance(c, dict):
-            continue
-        ctype = c.get("type")
-        if not isinstance(ctype, str):
-            continue
-        if isinstance(c.get("properties"), dict):
-            flat = {"type": ctype, **c.get("properties")}
-            if "id" in c:
-                flat["id"] = c["id"]
-            c = flat
-        if "id" not in c:
-            c["id"] = f"sync-{i+1:04d}"
-        components.append(c)
-
-    return {"metadata": out_meta, "components": components}
 
 
 def _ensure_owner_user_id(db) -> str:
@@ -182,7 +134,7 @@ def run_sql_sync(batch_size: int | None = None) -> dict:
 
         try:
             parsed_obj = parsed_json_raw if isinstance(parsed_json_raw, dict) else json.loads(parsed_json_raw)
-            parsed_obj = _normalize_parsed_obj(parsed_obj)
+            parsed_obj = normalize_parsed_data_object(parsed_obj)
             parsed_json_str = json.dumps(parsed_obj, ensure_ascii=False)
         except Exception:
             skipped += 1

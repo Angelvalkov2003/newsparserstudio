@@ -6,6 +6,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.database import get_db
+from app.parsed_normalize import normalize_parsed_data_json_string
 from app.routes.auth import _get_current_user_id_and_role, user_can_access, user_can_access_page
 
 router = APIRouter(prefix="/parsed", tags=["parsed"])
@@ -46,6 +47,14 @@ def _validate_parsed_data(data_str: str) -> None:
     for key in ("authors", "categories", "tags"):
         if not isinstance(meta.get(key), list):
             raise HTTPException(status_code=422, detail=f"data: metadata.{key} must be an array.")
+    for opt in ("document_date", "parse_datetime", "document_last_update_date"):
+        if opt in meta:
+            v = meta[opt]
+            if v is not None and not isinstance(v, str):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"data: metadata.{opt} must be a string or null when present.",
+                )
     if "components" not in obj:
         raise HTTPException(status_code=422, detail="data: Missing required key 'components'.")
     comps = obj["components"]
@@ -226,12 +235,21 @@ def create_parsed(
         raise HTTPException(status_code=400, detail="Page not found")
     if not user_can_access_page(page, user_id, role, db):
         raise HTTPException(status_code=403, detail="No access to this page")
-    _validate_parsed_data(body.data)
+    try:
+        data_normalized = normalize_parsed_data_json_string(body.data)
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"data: Invalid JSON. {e.msg} (line {e.lineno}, column {e.colno}).",
+        ) from e
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    _validate_parsed_data(data_normalized)
     now = datetime.now(timezone.utc).isoformat()
     doc = {
         "page_id": body.page_id,
         "name": body.name.strip() if body.name else None,
-        "data": body.data,
+        "data": data_normalized,
         "info": body.info.strip() if body.info else None,
         "is_verified": body.is_verified,
         "notes": body.notes.strip() if body.notes else None,
@@ -262,12 +280,21 @@ def update_parsed(
         raise HTTPException(status_code=404, detail="Not found")
     if not user_can_access(doc, user_id, role):
         raise HTTPException(status_code=403, detail="Forbidden")
-    _validate_parsed_data(body.data)
+    try:
+        data_normalized = normalize_parsed_data_json_string(body.data)
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"data: Invalid JSON. {e.msg} (line {e.lineno}, column {e.colno}).",
+        ) from e
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    _validate_parsed_data(data_normalized)
     now = datetime.now(timezone.utc).isoformat()
     set_payload = {
         "page_id": body.page_id,
         "name": body.name.strip() if body.name else None,
-        "data": body.data,
+        "data": data_normalized,
         "info": body.info.strip() if body.info else None,
         "is_verified": body.is_verified,
         "notes": body.notes.strip() if body.notes else None,

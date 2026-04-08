@@ -6,6 +6,10 @@ export interface MetadataItem {
 export interface ArticleMetadata {
   title: string;
   document_date?: string;
+  /** When the parser ran (ISO). */
+  parse_datetime?: string;
+  /** Last modified / updated time from source feed when available (ISO). */
+  document_last_update_date?: string;
   authors: MetadataItem[];
   categories: MetadataItem[];
   tags: MetadataItem[];

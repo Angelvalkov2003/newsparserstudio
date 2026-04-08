@@ -28,18 +28,29 @@ function toMetadataItems(arr: unknown): MetadataItem[] {
     .filter((x): x is MetadataItem => x !== null);
 }
 
+function optionalIsoString(v: unknown): string | undefined {
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
 function normalizeMetadata(m: unknown): ArticleMetadata {
-  const meta = m as Record<string, unknown>;
-  const documentDate = meta.document_date;
+  const meta = (m && typeof m === "object" ? m : {}) as Record<string, unknown>;
+  const props =
+    meta.properties && typeof meta.properties === "object"
+      ? (meta.properties as Record<string, unknown>)
+      : null;
+  const base: Record<string, unknown> = props ? { ...props } : { ...meta };
+  const title =
+    (typeof meta.title === "string" ? meta.title : "") ||
+    (props && typeof props.title === "string" ? props.title : "") ||
+    (typeof base.title === "string" ? base.title : "");
   return {
-    title: typeof meta.title === "string" ? meta.title : "",
-    document_date:
-      typeof documentDate === "string" && documentDate.trim()
-        ? documentDate.trim()
-        : undefined,
-    authors: toMetadataItems(meta.authors),
-    categories: toMetadataItems(meta.categories),
-    tags: toMetadataItems(meta.tags),
+    title,
+    document_date: optionalIsoString(base.document_date),
+    parse_datetime: optionalIsoString(base.parse_datetime),
+    document_last_update_date: optionalIsoString(base.document_last_update_date),
+    authors: toMetadataItems(base.authors),
+    categories: toMetadataItems(base.categories),
+    tags: toMetadataItems(base.tags),
   };
 }
 

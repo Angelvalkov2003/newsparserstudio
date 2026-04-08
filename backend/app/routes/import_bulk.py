@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.routes.auth import _get_current_user_id_and_role
+from app.parsed_normalize import normalize_parsed_data_object
 from app.routes.parsed import _validate_parsed_data
 
 router = APIRouter(tags=["import-bulk"])
@@ -95,9 +96,20 @@ def import_bulk(
                 pages_created += 1
 
             for p in (page_item.parsed or []):
-                data_str = p.data if isinstance(p.data, str) else json.dumps(p.data)
                 try:
+                    if isinstance(p.data, dict):
+                        obj = p.data
+                    else:
+                        obj = json.loads(p.data)
+                    if not isinstance(obj, dict):
+                        errors.append("Parsed data: must be a JSON object with metadata and components.")
+                        continue
+                    normalized = normalize_parsed_data_object(obj)
+                    data_str = json.dumps(normalized, ensure_ascii=False)
                     _validate_parsed_data(data_str)
+                except json.JSONDecodeError as e:
+                    errors.append(f"Parsed data: invalid JSON ({e.msg}).")
+                    continue
                 except HTTPException as e:
                     errors.append(f"Parsed data validation: {e.detail}")
                     continue

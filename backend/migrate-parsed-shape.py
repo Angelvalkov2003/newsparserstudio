@@ -1,7 +1,7 @@
 import json
 
 from app.database import connect_db, close_db, get_db
-from app.sql_sync import _normalize_parsed_obj
+from app.parsed_normalize import normalize_parsed_data_object
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
                 skipped += 1
                 continue
 
-            normalized = _normalize_parsed_obj(obj)
+            normalized = normalize_parsed_data_object(obj)
             new_raw = json.dumps(normalized, ensure_ascii=False)
             if new_raw == raw:
                 continue

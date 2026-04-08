@@ -5,7 +5,7 @@ import type { ParsedWithPage } from "../../api";
 import type { ArticleDataCorrected } from "../../types";
 import { CorrectedPreview } from "./CorrectedPreview";
 import { formatParsedLabel } from "../../utils/formatParsedLabel";
-import { getParsed } from "../../api";
+import { checkPreviewEmbeddable, getParsed } from "../../api";
 import { parseDataParsedLike } from "../editor/UploadArticleButton";
 import { useIsAdmin } from "../../context";
 
@@ -24,6 +24,73 @@ const MODE_OPTIONS: { value: PreviewMode; label: string }[] = [
   { value: "original", label: "url" },
   { value: "corrected", label: "data_corrected" },
 ];
+
+function OriginalArticleIframe({ src, title }: { src: string; title: string }) {
+  return <iframe title={title} src={src} className="preview-iframe" />;
+}
+
+/**
+ * Asks the backend whether the URL allows iframe embedding from this origin.
+ * If not, shows URL + open link only (no iframe) so the browser does not log X-Frame-Options errors.
+ */
+function UrlPreviewWithEmbedCheck({ src, title }: { src: string; title: string }) {
+  const [status, setStatus] = useState<"checking" | "allowed" | "blocked">("checking");
+  const [reason, setReason] = useState<string | null>(null);
+
+  useEffect(() => {
+    setStatus("checking");
+    setReason(null);
+    let cancelled = false;
+    const ac = new AbortController();
+    const timer = window.setTimeout(() => {
+      checkPreviewEmbeddable(src, window.location.origin, ac.signal)
+        .then((res) => {
+          if (cancelled) return;
+          if (res.embeddable === false) {
+            setStatus("blocked");
+            setReason(res.reason ?? "This page cannot be shown inside the preview.");
+          } else {
+            setStatus("allowed");
+            setReason(null);
+          }
+        })
+        .catch(() => {
+          if (cancelled || ac.signal.aborted) return;
+          setStatus("allowed");
+        });
+    }, 320);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      ac.abort();
+    };
+  }, [src]);
+
+  if (status === "checking") {
+    return (
+      <div className="preview-embed-checking" aria-live="polite">
+        <p>Checking whether in-app preview is allowed for this site…</p>
+      </div>
+    );
+  }
+
+  if (status === "blocked") {
+    return (
+      <div className="preview-embed-fallback">
+        <p className="preview-embed-fallback-msg">{reason}</p>
+        <p className="preview-embed-fallback-url" title={src}>
+          {src}
+        </p>
+        <a href={src} target="_blank" rel="noopener noreferrer" className="preview-external-open-link">
+          Open in new tab
+        </a>
+      </div>
+    );
+  }
+
+  return <OriginalArticleIframe src={src} title={title} />;
+}
 
 export function PreviewPanel({
   state,
@@ -174,12 +241,7 @@ export function PreviewPanel({
         {hasPage ? (
           selectedReference === "url" ? (
             iframeSrc ? (
-              <iframe
-                title="Original article (page URL)"
-                src={iframeSrc}
-                className="preview-iframe"
-                sandbox="allow-same-origin allow-scripts"
-              />
+              <UrlPreviewWithEmbedCheck src={iframeSrc} title="Original article (page URL)" />
             ) : (
               <p className="preview-placeholder-block">No page URL.</p>
             )
@@ -195,12 +257,7 @@ export function PreviewPanel({
             {activePreviewMode === "original" && (
               <>
                 {iframeSrc ? (
-                  <iframe
-                    title="Original article"
-                    src={iframeSrc}
-                    className="preview-iframe"
-                    sandbox="allow-same-origin allow-scripts"
-                  />
+                  <UrlPreviewWithEmbedCheck src={iframeSrc} title="Original article" />
                 ) : (
                   <p className="preview-placeholder-block">
                     Load an article to see the original page, or enter a URL above.

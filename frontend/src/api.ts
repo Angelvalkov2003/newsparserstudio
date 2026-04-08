@@ -544,3 +544,24 @@ export async function deleteUser(userId: string): Promise<void> {
   })
   if (!r.ok) throw new Error(await r.text())
 }
+
+export type PreviewEmbedCheckResult = {
+  embeddable: boolean
+  reason: string | null
+  final_url: string | null
+}
+
+/** Unauthenticated: used before iframe preview to avoid blocked URLs (X-Frame-Options / CSP). */
+export async function checkPreviewEmbeddable(
+  url: string,
+  parentOrigin: string,
+  signal?: AbortSignal
+): Promise<PreviewEmbedCheckResult> {
+  const params = new URLSearchParams({ url, parent: parentOrigin })
+  const r = await fetch(`${API}/preview/embed-check?${params}`, { signal })
+  if (!r.ok) {
+    const text = await r.text()
+    throw new Error(text || 'embed-check failed')
+  }
+  return r.json() as Promise<PreviewEmbedCheckResult>
+}

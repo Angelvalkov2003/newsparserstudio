@@ -48,6 +48,26 @@ export function MetadataEditor({ metadata, dispatch }: MetadataEditorProps) {
         />
       </label>
 
+      <label className="editor-field">
+        <span className="editor-label">Last updated (source)</span>
+        <input
+          type="datetime-local"
+          className="editor-input"
+          value={
+            metadata.document_last_update_date
+              ? metadata.document_last_update_date.slice(0, 16)
+              : ""
+          }
+          onChange={(e) =>
+            update({
+              ...metadata,
+              document_last_update_date: e.target.value || undefined,
+            })
+          }
+          aria-label="Document last update from source"
+        />
+      </label>
+
       <div className="editor-field">
         <ChipList
           label="Authors"

@@ -20,6 +20,12 @@ export function CorrectedPreview({ data, dispatch, readOnly = false }: Corrected
         {metadata.document_date && (
           <p className="preview-meta preview-date">{metadata.document_date}</p>
         )}
+        {metadata.document_last_update_date && (
+          <p className="preview-meta preview-date">Last updated: {metadata.document_last_update_date}</p>
+        )}
+        {metadata.parse_datetime && (
+          <p className="preview-meta preview-date">Parsed: {metadata.parse_datetime}</p>
+        )}
         {metadata.authors.length > 0 && (
           <p className="preview-meta preview-authors">
             {metadata.authors.map((item, i) => (

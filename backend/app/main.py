@@ -17,6 +17,7 @@ from app.routes.pages import router as pages_router
 from app.routes.parsed import router as parsed_router
 from app.routes.import_bulk import router as import_bulk_router
 from app.routes.sql_sync import router as sql_sync_router
+from app.routes.preview_embed import router as preview_embed_router
 
 
 @asynccontextmanager
@@ -55,6 +56,7 @@ api_router.include_router(pages_router)
 api_router.include_router(parsed_router)
 api_router.include_router(import_bulk_router)
 api_router.include_router(sql_sync_router)
+api_router.include_router(preview_embed_router)
 app.include_router(api_router)
 
 
