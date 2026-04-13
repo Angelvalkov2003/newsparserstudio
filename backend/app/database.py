@@ -9,12 +9,23 @@ client: MongoClient | None = None
 _USE_SYSTEM_TLS = os.getenv("USE_SYSTEM_TLS", "").strip().lower() in ("1", "true", "yes")
 
 
+def _mongo_uri_uses_tls(url: str) -> bool:
+    """Plain mongodb://localhost has no TLS; certifi here forces TLS and breaks local MongoDB."""
+    u = (url or "").strip().lower()
+    if u.startswith("mongodb+srv://"):
+        return True
+    if "tls=true" in u or "ssl=true" in u:
+        return True
+    return False
+
+
 def connect_db() -> None:
     global client
     kwargs = {"serverSelectionTimeoutMS": 15000}
-    if not _USE_SYSTEM_TLS:
+    if _mongo_uri_uses_tls(MONGO_URL) and not _USE_SYSTEM_TLS:
         try:
             import certifi
+
             kwargs["tlsCAFile"] = certifi.where()
         except Exception:
             pass
