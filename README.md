@@ -31,6 +31,12 @@ Stop and remove MongoDB data volume too:
 docker compose down -v
 ```
 
+Drop Mongo collections from container (`parsed`, `pages`, `sites`/`websites`):
+
+```powershell
+docker compose exec mongodb mongosh --eval "db = db.getSiblingDB('universal_markdown_builder'); ['parsed','pages','sites','websites'].forEach(c => { try { db.getCollection(c).drop(); } catch(e) {} }); print('Drop attempted for parsed/pages/sites/websites'); db.getCollectionNames();"
+```
+
 ## Docker + local MySQL (SQL sync)
 
 To sync data from a local MySQL database into MongoDB, the backend container must connect to MySQL running on your host machine.
