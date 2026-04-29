@@ -1,0 +1,204 @@
+.twelve-punto-page {
+  padding: 1rem 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.twelve-punto-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.twelve-punto-hint {
+  font-size: 0.875rem;
+  color: var(--editor-muted);
+  margin-bottom: 1rem;
+}
+
+.twelve-punto-forbidden {
+  color: var(--editor-muted);
+  font-size: 1rem;
+}
+
+.twelve-punto-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-input-bg);
+}
+
+.twelve-punto-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.twelve-punto-filters-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--editor-muted);
+}
+
+.twelve-punto-filters-row input[type='text'],
+.twelve-punto-filters-row input[type='datetime-local'],
+.twelve-punto-filters-row select {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.875rem;
+  min-width: 8rem;
+  background: var(--editor-bg, #fff);
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  color: var(--editor-fg);
+}
+
+.twelve-punto-filters-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.twelve-punto-filters-actions button {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--editor-accent, #3b82f6);
+  border: 1px solid var(--editor-accent, #3b82f6);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.twelve-punto-filters-actions button.secondary {
+  background: var(--editor-input-bg);
+  border-color: var(--editor-border);
+  color: var(--editor-fg);
+}
+
+.twelve-punto-filters-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.twelve-punto-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.twelve-punto-chip-row span {
+  font-size: 0.8125rem;
+  color: var(--editor-muted);
+  margin-right: 0.25rem;
+}
+
+.twelve-punto-chip {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--editor-border);
+  background: var(--editor-bg, #fff);
+  color: var(--editor-fg);
+  cursor: pointer;
+}
+
+.twelve-punto-chip.on {
+  background: var(--editor-accent, #3b82f6);
+  border-color: var(--editor-accent, #3b82f6);
+  color: #fff;
+}
+
+.twelve-punto-error {
+  color: #dc2626;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.twelve-punto-loading,
+.twelve-punto-empty {
+  color: var(--editor-muted);
+  margin: 1rem 0;
+}
+
+.twelve-punto-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-input-bg);
+}
+
+.twelve-punto-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.twelve-punto-table th,
+.twelve-punto-table td {
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid var(--editor-border);
+  vertical-align: top;
+}
+
+.twelve-punto-table th {
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--editor-toolbar-bg, rgba(0, 0, 0, 0.03));
+}
+
+.twelve-punto-table tr:last-child td {
+  border-bottom: none;
+}
+
+.twelve-punto-table .cell-title {
+  max-width: 28rem;
+  word-break: break-word;
+}
+
+.twelve-punto-table .cell-cats {
+  max-width: 12rem;
+  font-size: 0.8125rem;
+  color: var(--editor-muted);
+}
+
+.twelve-punto-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.twelve-punto-pager button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  background: var(--editor-input-bg);
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  color: var(--editor-fg);
+  cursor: pointer;
+}
+
+.twelve-punto-pager button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.twelve-punto-config-missing {
+  padding: 1rem;
+  border: 1px dashed var(--editor-border);
+  border-radius: 8px;
+  color: var(--editor-muted);
+  font-size: 0.9375rem;
+}

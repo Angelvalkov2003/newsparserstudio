@@ -11,6 +11,7 @@ import { ImportBulk } from './pages/ImportBulk'
 import { UsersPage } from './pages/UsersPage'
 import { AdminPage } from './pages/AdminPage'
 import { CompareVerifiedPage } from './pages/CompareVerified'
+import { TwelvePuntoPage } from './pages/TwelvePuntoPage'
 import './App.css'
 
 function AppRoutes() {
@@ -34,6 +35,7 @@ function AppRoutes() {
           <Route path="pages" element={<PagesPage />} />
           <Route path="parsed" element={<AddParsed />} />
           <Route path="compare-verified" element={<CompareVerifiedPage />} />
+          <Route path="12punto" element={<TwelvePuntoPage />} />
           <Route path="import-bulk" element={<ImportBulk />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="admin" element={<AdminPage />} />

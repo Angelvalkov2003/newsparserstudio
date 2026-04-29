@@ -29,9 +29,14 @@ services:
     ports:
       - "8000:8000"
 
+  # After changing frontend code or VITE_* env: rebuild — e.g. docker compose build frontend && docker compose up -d frontend
+  # Optional: create a project-root .env (gitignored) with VITE_API_ORIGIN / VITE_TWELVE_PUNTO_API_ORIGIN; compose substitutes into build.args.
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_ORIGIN: ${VITE_API_ORIGIN:-http://127.0.0.1:8000}
+        # Omit VITE_TWELVE_PUNTO_API_ORIGIN so Dockerfile leaves it empty → app uses /twelve-punto-api (nginx proxy, no CORS).
     container_name: newsparser-frontend
     restart: unless-stopped
     depends_on:

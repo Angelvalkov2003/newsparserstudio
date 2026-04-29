@@ -43,6 +43,11 @@ export function Layout() {
               </NavLink>
               )}
               {!isGuest && isAdmin && (
+                <NavLink to="/12punto" className={({ isActive }) => (isActive ? 'active' : '')}>
+                  12punto
+                </NavLink>
+              )}
+              {!isGuest && isAdmin && (
                 <NavLink to="/import-bulk" className={({ isActive }) => (isActive ? 'active' : '')}>
                   Import bulk
                 </NavLink>
