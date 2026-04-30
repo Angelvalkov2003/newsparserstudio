@@ -160,6 +160,14 @@
   border-bottom: none;
 }
 
+.twelve-punto-table tbody tr.twelve-punto-row-clickable {
+  cursor: pointer;
+}
+
+.twelve-punto-table tbody tr.twelve-punto-row-clickable:hover td {
+  background: var(--editor-toolbar-bg, rgba(0, 0, 0, 0.05));
+}
+
 .twelve-punto-table .cell-title {
   max-width: 28rem;
   word-break: break-word;
@@ -201,4 +209,158 @@
   border-radius: 8px;
   color: var(--editor-muted);
   font-size: 0.9375rem;
+}
+
+.twelve-punto-back {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+}
+
+.twelve-punto-back a {
+  color: var(--editor-accent, #3b82f6);
+  text-decoration: none;
+}
+
+.twelve-punto-back a:hover {
+  text-decoration: underline;
+}
+
+.twelve-punto-post-json {
+  margin: 1rem 0 0;
+  padding: 1rem;
+  max-height: min(70vh, 48rem);
+  overflow: auto;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-input-bg);
+  color: var(--editor-fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.twelve-punto-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.twelve-punto-detail-actions button.secondary {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--editor-input-bg);
+  border: 1px solid var(--editor-border);
+  color: var(--editor-fg);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.twelve-punto-detail-actions button.secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.twelve-punto-inline-error {
+  margin: 0;
+  flex: 1 1 12rem;
+}
+
+.twelve-punto-import-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-input-bg);
+}
+
+.twelve-punto-import-btn {
+  padding: 0.45rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--editor-accent, #3b82f6);
+  border: 1px solid var(--editor-accent, #3b82f6);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.twelve-punto-import-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.twelve-punto-import-hint {
+  font-size: 0.8125rem;
+  color: var(--editor-muted);
+  flex: 1 1 14rem;
+  line-height: 1.4;
+}
+
+.twelve-punto-import-success {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--editor-fg);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.twelve-punto-degraded-banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  background: rgba(234, 179, 8, 0.1);
+}
+
+.twelve-punto-degraded-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.twelve-punto-degraded-text {
+  margin: 0 0 0.65rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--editor-fg);
+}
+
+.twelve-punto-degraded-details {
+  margin-bottom: 0.65rem;
+  font-size: 0.8125rem;
+}
+
+.twelve-punto-degraded-details summary {
+  cursor: pointer;
+  color: var(--editor-muted);
+}
+
+.twelve-punto-degraded-pre {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.65rem;
+  max-height: 10rem;
+  overflow: auto;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  border-radius: 6px;
+  border: 1px solid var(--editor-border);
+  background: var(--editor-input-bg);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.twelve-punto-detail-actions--banner {
+  margin-top: 0.35rem;
+  margin-bottom: 0;
 }

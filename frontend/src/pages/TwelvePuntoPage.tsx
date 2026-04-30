@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   fetchTwelvePuntoFeeds,
   fetchTwelvePuntoPosts,
   parseTwelvePuntoPostsResponse,
+  resolveTwelvePuntoPostPathId,
   type TwelvePuntoPost,
   type TwelvePuntoPostsListParams,
   type TwelvePuntoSortDirection,
@@ -58,6 +60,7 @@ type ReadyFilter = 'default' | 'true' | 'false'
 
 export function TwelvePuntoPage() {
   const isAdmin = useIsAdmin()
+  const navigate = useNavigate()
 
   const [sortField, setSortField] = useState<TwelvePuntoSortField>('created_at')
   const [sortDirection, setSortDirection] = useState<TwelvePuntoSortDirection>('desc')
@@ -391,8 +394,25 @@ export function TwelvePuntoPage() {
                 </tr>
               </thead>
               <tbody>
-                {posts.map((p, i) => (
-                  <tr key={p.id ?? p.db_id ?? p.source_id ?? `${pageIndex}-${i}`}>
+                {posts.map((p, i) => {
+                  const pathId = resolveTwelvePuntoPostPathId(p)
+                  const rowKey = p.id ?? p.db_id ?? p.source_id ?? `${pageIndex}-${i}`
+                  return (
+                  <tr
+                    key={rowKey}
+                    className={pathId ? 'twelve-punto-row-clickable' : undefined}
+                    tabIndex={pathId ? 0 : undefined}
+                    onClick={() => {
+                      if (pathId) navigate(`/12punto/post/${encodeURIComponent(pathId)}`)
+                    }}
+                    onKeyDown={(e) => {
+                      if (!pathId) return
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        navigate(`/12punto/post/${encodeURIComponent(pathId)}`)
+                      }
+                    }}
+                  >
                     <td className="cell-title">{p.title?.trim() || '—'}</td>
                     <td>{p.feed_name ?? '—'}</td>
                     <td>{p.feed_type ?? '—'}</td>
@@ -404,7 +424,8 @@ export function TwelvePuntoPage() {
                       <code style={{ fontSize: '0.75rem' }}>{p.id ?? p.db_id ?? p.source_id ?? '—'}</code>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

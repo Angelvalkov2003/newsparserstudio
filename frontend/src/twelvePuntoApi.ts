@@ -1,15 +1,3 @@
-/**
- * Twelve Punto public consumer API (OAS 3.1).
- *
- * - Prefer VITE_TWELVE_PUNTO_API_ORIGIN (absolute URL, no trailing slash) baked at build time.
- * - If unset, use same-origin path `/twelve-punto-api` — Vite (dev) and nginx (Docker) proxy to the real host.
- *
- * CORS: calling the real API URL from the browser (e.g. localhost:5173 → ai.12punto…) is blocked unless the API
- * sends Access-Control-Allow-Origin for your origin. Avoid by using same-origin `/twelve-punto-api` (Vite + nginx proxy).
- *
- * - `npm run dev`: always use `/twelve-punto-api` (ignore VITE_TWELVE_PUNTO_API_ORIGIN) so dev never hits CORS.
- * - Production build: use VITE_TWELVE_PUNTO_API_ORIGIN if set; else `/twelve-punto-api` (nginx in Docker proxies it).
- */
 const FROM_ENV = (import.meta.env.VITE_TWELVE_PUNTO_API_ORIGIN as string | undefined)?.trim().replace(/\/$/, '') ?? ''
 const DEFAULT_PROXY_BASE = '/twelve-punto-api'
 export const TWELVE_PUNTO_BASE = import.meta.env.DEV
@@ -24,7 +12,6 @@ export type TwelvePuntoSortField = 'published_at' | 'created_at'
 export type TwelvePuntoSortDirection = 'asc' | 'desc'
 
 export type TwelvePuntoPost = {
-  /** Present depending on API version / projection */
   id?: string
   db_id?: string
   feed_id?: string
@@ -85,6 +72,199 @@ export function parseTwelvePuntoPostsResponse(json: unknown): { posts: TwelvePun
   return { posts, next_cursor }
 }
 
+export function resolveTwelvePuntoPostPathId(post: TwelvePuntoPost): string | null {
+  const raw = post.id ?? post.db_id ?? post.source_id
+  if (raw === undefined || raw === null) return null
+  const s = String(raw).trim()
+  return s.length ? s : null
+}
+
+export type TwelvePuntoPostDetailParams = {
+  projection?: 'minimal' | 'list' | 'detail'
+  fields?: string[]
+}
+
+export const TWELVE_PUNTO_POST_DETAIL_LIGHT_FIELDS: readonly string[] = [
+  'feed_id',
+  'feed_type',
+  'feed_name',
+  'source_id',
+  'published_at',
+  'created_at',
+  'edited_at',
+  'title',
+  'categories',
+  'ready',
+  'data',
+  'media',
+  'content',
+]
+
+export function isTwelvePuntoPostFailurePayload(json: unknown): boolean {
+  if (json == null || typeof json !== 'object' || Array.isArray(json)) return false
+  const o = json as Record<string, unknown>
+  const d = o.detail
+  if (Array.isArray(d)) return true
+  if (typeof d === 'string') {
+    return (
+      d.includes('Failed to get post') ||
+      d.includes('OperationalError') ||
+      d.includes('Out of sort memory') ||
+      d.includes('Validation Error')
+    )
+  }
+  if (d && typeof d === 'object') {
+    const inner = (d as Record<string, unknown>).detail
+    if (typeof inner === 'string') {
+      return (
+        inner.includes('Failed to get post') ||
+        inner.includes('OperationalError') ||
+        inner.includes('Out of sort memory')
+      )
+    }
+  }
+  return false
+}
+
+function buildPostDetailUrl(postId: string | number, params?: TwelvePuntoPostDetailParams): string {
+  const search = new URLSearchParams()
+  search.set('projection', params?.projection ?? 'detail')
+  if (params?.fields?.length) {
+    for (const f of params.fields) {
+      if (f.trim()) search.append('fields', f.trim())
+    }
+  }
+  const q = search.toString()
+  return `${TWELVE_PUNTO_BASE}/posts/${encodeURIComponent(String(postId))}${q ? `?${q}` : ''}`
+}
+
+function extractApiErrorSnippet(body: unknown, rawText: string, maxLen = 420): string {
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    const o = body as Record<string, unknown>
+    const d = o.detail
+    if (typeof d === 'string') return d.length > maxLen ? `${d.slice(0, maxLen)}…` : d
+    if (d && typeof d === 'object') {
+      const inner = (d as Record<string, unknown>).detail
+      if (typeof inner === 'string') return inner.length > maxLen ? `${inner.slice(0, maxLen)}…` : inner
+    }
+  }
+  const t = rawText.trim()
+  return t.length > maxLen ? `${t.slice(0, maxLen)}…` : t
+}
+
+export type TwelvePuntoPostDetailLoadResult =
+  | { kind: 'ok'; mode: 'full'; data: unknown }
+  | {
+      kind: 'ok'
+      mode: 'light'
+      data: unknown
+      queryLabel: string
+      degradedExplanation: string
+      fullFailureSnippet: string
+    }
+  | { kind: 'error'; message: string }
+
+export async function loadTwelvePuntoPostDetailWithFallback(postId: string): Promise<TwelvePuntoPostDetailLoadResult> {
+  const tryOnce = async (
+    params?: TwelvePuntoPostDetailParams
+  ): Promise<{ ok: boolean; data?: unknown; snippet: string; status: number }> => {
+    const url = buildPostDetailUrl(postId, params)
+    const r = await fetch(url, { headers: { Accept: 'application/json' } })
+    const rawText = await r.text()
+    let body: unknown = null
+    try {
+      body = rawText ? JSON.parse(rawText) : null
+    } catch {
+      return { ok: false, snippet: rawText || `HTTP ${r.status}`, status: r.status }
+    }
+    if (r.status < 200 || r.status >= 300) {
+      return { ok: false, snippet: extractApiErrorSnippet(body, rawText), status: r.status }
+    }
+    if (isTwelvePuntoPostFailurePayload(body)) {
+      return { ok: false, snippet: extractApiErrorSnippet(body, rawText), status: r.status }
+    }
+    return { ok: true, data: body, snippet: '', status: r.status }
+  }
+
+  const full = await tryOnce({ projection: 'detail' })
+  if (full.ok && full.data !== undefined) {
+    return { kind: 'ok', mode: 'full', data: full.data }
+  }
+
+  const fullSnippet = full.snippet
+
+  const lightFields = await tryOnce({
+    projection: 'detail',
+    fields: [...TWELVE_PUNTO_POST_DETAIL_LIGHT_FIELDS],
+  })
+  if (lightFields.ok && lightFields.data !== undefined) {
+    return {
+      kind: 'ok',
+      mode: 'light',
+      data: lightFields.data,
+      queryLabel: `GET /posts/${postId}?projection=detail&fields=(no processings, no db_id)`,
+      degradedExplanation:
+        'Full detail failed while the API loaded post_processing (often MySQL “Out of sort memory”). A reduced field set was used so article text and metadata still load.',
+      fullFailureSnippet: fullSnippet,
+    }
+  }
+
+  const listProj = await tryOnce({ projection: 'list' })
+  if (listProj.ok && listProj.data !== undefined) {
+    return {
+      kind: 'ok',
+      mode: 'light',
+      data: listProj.data,
+      queryLabel: `GET /posts/${postId}?projection=list`,
+      degradedExplanation:
+        'Full detail and field-filtered detail both failed. Showing projection=list if available.',
+      fullFailureSnippet: [fullSnippet, lightFields.snippet].filter(Boolean).join(' | '),
+    }
+  }
+
+  const minimalProj = await tryOnce({ projection: 'minimal' })
+  if (minimalProj.ok && minimalProj.data !== undefined) {
+    return {
+      kind: 'ok',
+      mode: 'light',
+      data: minimalProj.data,
+      queryLabel: `GET /posts/${postId}?projection=minimal`,
+      degradedExplanation:
+        'Heavier projections failed. Showing projection=minimal if available.',
+      fullFailureSnippet: [fullSnippet, lightFields.snippet, listProj.snippet].filter(Boolean).join(' | '),
+    }
+  }
+
+  const msg =
+    [full.snippet, lightFields.snippet, listProj.snippet, minimalProj.snippet].filter(Boolean).join(' — ') ||
+    'Failed to load post'
+  return { kind: 'error', message: msg }
+}
+
+export async function fetchTwelvePuntoPost(
+  postId: string | number,
+  params?: TwelvePuntoPostDetailParams
+): Promise<unknown> {
+  const url = buildPostDetailUrl(postId, params)
+  const r = await fetch(url, {
+    headers: { Accept: 'application/json' },
+  })
+  const rawText = await r.text()
+  let body: unknown = null
+  try {
+    body = rawText ? JSON.parse(rawText) : null
+  } catch {
+    throw new Error(rawText || `HTTP ${r.status}`)
+  }
+  if (!r.ok) {
+    throw new Error(rawText || `HTTP ${r.status}`)
+  }
+  if (isTwelvePuntoPostFailurePayload(body)) {
+    throw new Error(extractApiErrorSnippet(body, rawText))
+  }
+  return body
+}
+
 export async function fetchTwelvePuntoPosts(params: TwelvePuntoPostsListParams): Promise<TwelvePuntoPostsResponse> {
   const search = new URLSearchParams()
   appendRepeated(search, 'feed_types', params.feed_types)
@@ -105,8 +285,6 @@ export async function fetchTwelvePuntoPosts(params: TwelvePuntoPostsListParams):
 
   if (params.cursor) search.set('cursor', params.cursor)
 
-  // Only pass `fields` when explicitly requested — deployed APIs may reject names from the doc (e.g. db_id).
-  // `projection=list` alone returns a sensible default shape.
   if (params.fields?.length) appendRepeated(search, 'fields', params.fields)
 
   const url = `${TWELVE_PUNTO_BASE}/posts${search.toString() ? `?${search.toString()}` : ''}`

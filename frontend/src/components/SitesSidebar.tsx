@@ -210,12 +210,9 @@ export function SitesSidebar() {
 
   const parsedList = selectedPageId != null ? parsedByPage[selectedPageId] ?? [] : []
   const visibleParsedList = useMemo(() => {
-    // Admin: вижда всички версии
     if (isAdmin) return parsedList
-    // Нормален юзър (не-гост): показваме само последния верифициран.
     const verified = parsedList.filter((p) => p.is_verified)
     if (verified.length === 0) {
-      // Ако още няма верифициран, показваме всички (обичайно ще са чернови).
       return parsedList
     }
     const pickTime = (p: ParsedWithPage) => (p.updated_at || p.created_at || '')

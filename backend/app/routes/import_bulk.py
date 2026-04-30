@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timezone
 from bson import ObjectId
 
@@ -56,6 +57,11 @@ def import_bulk(
         if not url:
             continue
         site_doc = db["sites"].find_one({"url": url})
+        name_trim = site_item.name.strip() if site_item.name else ""
+        if not site_doc and name_trim:
+            rx = re.compile(f"^{re.escape(name_trim)}$", re.IGNORECASE)
+            cur = db["sites"].find({"name": rx}).sort("_id", -1).limit(1)
+            site_doc = next(cur, None)
         if site_doc:
             site_id = str(site_doc["_id"])
             sites_matched += 1
