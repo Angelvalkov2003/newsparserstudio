@@ -415,6 +415,91 @@ export async function importBulk(payload: { sites: SiteBulkItem[] }): Promise<Im
   return r.json()
 }
 
+export type TwelvePuntoBulkImportStart = {
+  job_id: string
+  total: number
+  status: string
+}
+
+export type TwelvePuntoBulkImportRow = {
+  post_id: string
+  site_name: string
+  title?: string | null
+  /** Set when a row was already imported and bulk import refreshed the parsed document. */
+  note?: string | null
+}
+
+export type TwelvePuntoBulkImportFailRow = {
+  post_id: string
+  site_name: string
+  title?: string | null
+  error: string
+}
+
+export type TwelvePuntoImportOneResult = {
+  outcome: 'imported' | 'failed'
+  post_id: string
+  title?: string | null
+  site_name?: string | null
+  error?: string | null
+  parsed_created?: number
+  parsed_updated?: number
+  reimported?: boolean
+  note?: string | null
+}
+
+export type TwelvePuntoBulkImportResults = {
+  imported: number
+  skipped_duplicate: number
+  succeeded_rows?: TwelvePuntoBulkImportRow[]
+  skipped_rows?: TwelvePuntoBulkImportRow[]
+  failed_rows?: TwelvePuntoBulkImportFailRow[]
+}
+
+export type TwelvePuntoBulkImportJobStatus = {
+  job_id: string
+  status: string | null
+  total: number | null
+  progress_done: number | null
+  created_at?: string | null
+  started_at?: string | null
+  finished_at?: string | null
+  post_rows?: TwelvePuntoBulkImportRow[] | null
+  results?: TwelvePuntoBulkImportResults | null
+  error?: string | null
+}
+
+export async function startTwelvePuntoBulkImport(postIds: string[]): Promise<TwelvePuntoBulkImportStart> {
+  const r = await apiRequest(`${API}/twelve-punto/bulk-import`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ post_ids: postIds }),
+  })
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || text || `HTTP ${r.status}`)
+  return JSON.parse(text) as TwelvePuntoBulkImportStart
+}
+
+export async function getTwelvePuntoBulkImportJob(jobId: string): Promise<TwelvePuntoBulkImportJobStatus> {
+  const r = await apiRequest(`${API}/twelve-punto/bulk-import/${encodeURIComponent(jobId)}`, {
+    headers: getAuthHeadersNoBody(),
+  })
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || text || `HTTP ${r.status}`)
+  return JSON.parse(text) as TwelvePuntoBulkImportJobStatus
+}
+
+export async function retryTwelvePuntoImportOne(postId: string): Promise<TwelvePuntoImportOneResult> {
+  const r = await apiRequest(`${API}/twelve-punto/import-one`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ post_id: postId }),
+  })
+  const text = await r.text()
+  if (!r.ok) throw new Error(getErrorFromResponse(text) || text || `HTTP ${r.status}`)
+  return JSON.parse(text) as TwelvePuntoImportOneResult
+}
+
 // --- Auth API (used by authContext) ---
 const AUTH_TIMEOUT_MS = 15000
 

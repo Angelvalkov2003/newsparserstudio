@@ -18,6 +18,7 @@ from app.routes.parsed import router as parsed_router
 from app.routes.import_bulk import router as import_bulk_router
 from app.routes.sql_sync import router as sql_sync_router
 from app.routes.preview_embed import router as preview_embed_router
+from app.routes.twelve_punto_bulk_import import router as twelve_punto_bulk_router
 
 
 @asynccontextmanager
@@ -57,6 +58,7 @@ api_router.include_router(parsed_router)
 api_router.include_router(import_bulk_router)
 api_router.include_router(sql_sync_router)
 api_router.include_router(preview_embed_router)
+api_router.include_router(twelve_punto_bulk_router)
 app.include_router(api_router)
 
 

@@ -364,3 +364,293 @@
   margin-top: 0.35rem;
   margin-bottom: 0;
 }
+
+.twelve-punto-col-select {
+  width: 2.5rem;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.twelve-punto-col-select input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: var(--editor-accent, #3b82f6);
+}
+
+.twelve-punto-bulk-muted {
+  color: var(--editor-muted);
+  font-size: 0.8125rem;
+}
+
+.twelve-punto-bulk-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-bg, #fff);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.twelve-punto-bulk-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.twelve-punto-bulk-count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--editor-fg);
+}
+
+.twelve-punto-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.twelve-punto-bulk-actions .secondary {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+  background: var(--editor-input-bg);
+  border: 1px solid var(--editor-border);
+  border-radius: 6px;
+  color: var(--editor-fg);
+  cursor: pointer;
+}
+
+.twelve-punto-bulk-actions .secondary:disabled,
+.twelve-punto-bulk-actions .twelve-punto-import-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.twelve-punto-bulk-feedback {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.twelve-punto-bulk-msg {
+  margin: 0;
+}
+
+.twelve-punto-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow: auto;
+}
+
+.twelve-punto-modal {
+  width: min(960px, 100%);
+  max-height: min(85vh, 900px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid var(--editor-border);
+  background: var(--editor-bg, #fff);
+  color: var(--editor-fg);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
+}
+
+.twelve-punto-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--editor-border);
+  flex-shrink: 0;
+}
+
+.twelve-punto-modal-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.twelve-punto-modal-close {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--editor-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.twelve-punto-modal-close:hover {
+  background: var(--editor-toolbar-bg, rgba(0, 0, 0, 0.06));
+  color: var(--editor-fg);
+}
+
+.twelve-punto-modal-body {
+  padding: 0.75rem 1rem 1rem;
+  overflow: auto;
+  flex: 1;
+}
+
+.twelve-punto-modal-body--relative {
+  position: relative;
+}
+
+.twelve-punto-modal-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  background: color-mix(in srgb, var(--editor-bg, #fff) 88%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.twelve-punto-modal-spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 3px solid var(--editor-border);
+  border-top-color: var(--editor-accent, #3b82f6);
+  border-radius: 50%;
+  animation: twelve-punto-spin 0.75s linear infinite;
+}
+
+.twelve-punto-modal-spinner-inline {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.35rem;
+  vertical-align: -0.15em;
+  border: 2px solid var(--editor-border);
+  border-top-color: var(--editor-accent, #3b82f6);
+  border-radius: 50%;
+  animation: twelve-punto-spin 0.75s linear infinite;
+}
+
+@keyframes twelve-punto-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.twelve-punto-modal-loading-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--editor-muted);
+  text-align: center;
+  max-width: 22rem;
+}
+
+.twelve-punto-modal-col-action {
+  width: 6.5rem;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.twelve-punto-modal-retry {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--editor-accent, #3b82f6);
+  background: var(--editor-accent, #3b82f6);
+  color: #fff;
+  cursor: pointer;
+}
+
+.twelve-punto-modal-retry:hover {
+  filter: brightness(1.05);
+}
+
+.twelve-punto-modal-retry-pending {
+  font-size: 0.8125rem;
+  color: var(--editor-muted);
+}
+
+.twelve-punto-modal-banner {
+  margin-bottom: 0.65rem;
+}
+
+.twelve-punto-modal-meta {
+  margin: 0 0 0.85rem;
+  font-size: 0.875rem;
+  color: var(--editor-muted);
+}
+
+.twelve-punto-modal-section {
+  margin-bottom: 1rem;
+}
+
+.twelve-punto-modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.twelve-punto-modal-section-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.twelve-punto-modal-table-wrap {
+  overflow: auto;
+  max-height: 14rem;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: var(--editor-input-bg);
+}
+
+.twelve-punto-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.twelve-punto-modal-table th,
+.twelve-punto-modal-table td {
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  border-bottom: 1px solid var(--editor-border);
+  vertical-align: top;
+}
+
+.twelve-punto-modal-table th {
+  font-weight: 600;
+  background: var(--editor-toolbar-bg, rgba(0, 0, 0, 0.03));
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.twelve-punto-modal-table tr:last-child td {
+  border-bottom: none;
+}
+
+.twelve-punto-modal-empty {
+  color: var(--editor-muted);
+}
+
+.twelve-punto-modal-reason {
+  word-break: break-word;
+  max-width: 28rem;
+}

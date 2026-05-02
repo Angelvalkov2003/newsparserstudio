@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  getTwelvePuntoBulkImportJob,
+  startTwelvePuntoBulkImport,
+  type TwelvePuntoBulkImportJobStatus,
+} from '../api'
+import { TwelvePuntoBulkImportModal } from '../components/TwelvePuntoBulkImportModal'
+import { TwelvePuntoBulkToolbar } from '../components/TwelvePuntoBulkToolbar'
 import {
   fetchTwelvePuntoFeeds,
   fetchTwelvePuntoPosts,
@@ -11,6 +18,7 @@ import {
   type TwelvePuntoSortField,
 } from '../twelvePuntoApi'
 import { useIsAdmin } from '../context'
+import { refreshSidebar } from '../utils/sidebarRefresh'
 import './TwelvePuntoPage.css'
 
 const FEED_TYPE_OPTIONS = [
@@ -78,6 +86,14 @@ export function TwelvePuntoPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedSuggestions, setFeedSuggestions] = useState<{ name: string; type?: string | null }[]>([])
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [bulkImporting, setBulkImporting] = useState(false)
+  const [bulkBusyLabel, setBulkBusyLabel] = useState<string | null>(null)
+  const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false)
+  const [bulkImportJob, setBulkImportJob] = useState<TwelvePuntoBulkImportJobStatus | null>(null)
+  const [bulkImportOrderedIds, setBulkImportOrderedIds] = useState<string[]>([])
+  const headerSelectAllRef = useRef<HTMLInputElement>(null)
 
   const feedNamesList = useMemo(
     () =>
@@ -255,6 +271,89 @@ export function TwelvePuntoPage() {
     void fetchAt(c, target)
   }
 
+  const selectableOnPage = useMemo(
+    () =>
+      posts
+        .map((p) => resolveTwelvePuntoPostPathId(p))
+        .filter((id): id is string => Boolean(id)),
+    [posts]
+  )
+
+  const allOnPageSelected =
+    selectableOnPage.length > 0 && selectableOnPage.every((id) => selectedIds.has(id))
+  const someOnPageSelected = selectableOnPage.some((id) => selectedIds.has(id))
+
+  useEffect(() => {
+    const el = headerSelectAllRef.current
+    if (!el) return
+    el.indeterminate = someOnPageSelected && !allOnPageSelected
+  }, [someOnPageSelected, allOnPageSelected])
+
+  const toggleSelectedId = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  }, [])
+
+  const handleHeaderSelectAllPage = useCallback(() => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev)
+      if (allOnPageSelected) {
+        for (const id of selectableOnPage) n.delete(id)
+      } else {
+        for (const id of selectableOnPage) n.add(id)
+      }
+      return n
+    })
+  }, [allOnPageSelected, selectableOnPage])
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const handleBulkImport = useCallback(async () => {
+    const ids = Array.from(selectedIds)
+    if (!ids.length) return
+    setBulkImporting(true)
+    setBulkBusyLabel('Starting…')
+    setBulkImportOrderedIds(ids)
+    setBulkImportJob(null)
+    setBulkImportModalOpen(true)
+    try {
+      const { job_id } = await startTwelvePuntoBulkImport(ids)
+      let last = await getTwelvePuntoBulkImportJob(job_id)
+      setBulkImportJob(last)
+      for (;;) {
+        const st = last.status
+        if (st === 'completed' || st === 'failed') break
+        const total = last.total ?? ids.length
+        const done = last.progress_done ?? 0
+        setBulkBusyLabel(`${done}/${total}…`)
+        await new Promise((r) => setTimeout(r, 900))
+        last = await getTwelvePuntoBulkImportJob(job_id)
+        setBulkImportJob(last)
+      }
+      setBulkImportJob(last)
+      if (last.status !== 'failed') {
+        refreshSidebar()
+      }
+    } catch (e) {
+      setBulkImportJob({
+        job_id: '',
+        status: 'failed',
+        total: ids.length,
+        progress_done: null,
+        error: e instanceof Error ? e.message : 'Bulk import failed',
+      })
+    } finally {
+      setBulkImporting(false)
+      setBulkBusyLabel(null)
+    }
+  }, [selectedIds])
+
   if (!isAdmin) {
     return (
       <div className="twelve-punto-page">
@@ -361,10 +460,10 @@ export function TwelvePuntoPage() {
         </div>
 
         <div className="twelve-punto-filters-actions">
-          <button type="button" onClick={handleApply} disabled={loading}>
+          <button type="button" onClick={handleApply} disabled={loading || bulkImporting}>
             Apply filters
           </button>
-          <button type="button" className="secondary" onClick={handleResetFilters} disabled={loading}>
+          <button type="button" className="secondary" onClick={handleResetFilters} disabled={loading || bulkImporting}>
             Reset
           </button>
         </div>
@@ -383,6 +482,17 @@ export function TwelvePuntoPage() {
             <table className="twelve-punto-table">
               <thead>
                 <tr>
+                  <th className="twelve-punto-col-select">
+                    <input
+                      ref={headerSelectAllRef}
+                      type="checkbox"
+                      disabled={!selectableOnPage.length || bulkImporting}
+                      checked={allOnPageSelected && selectableOnPage.length > 0}
+                      onChange={handleHeaderSelectAllPage}
+                      title="Select all on this page"
+                      aria-label="Select all on this page"
+                    />
+                  </th>
                   <th>Title</th>
                   <th>Feed</th>
                   <th>Type</th>
@@ -397,6 +507,8 @@ export function TwelvePuntoPage() {
                 {posts.map((p, i) => {
                   const pathId = resolveTwelvePuntoPostPathId(p)
                   const rowKey = p.id ?? p.db_id ?? p.source_id ?? `${pageIndex}-${i}`
+                  const canSelect = Boolean(pathId)
+                  const isSelected = pathId ? selectedIds.has(pathId) : false
                   return (
                   <tr
                     key={rowKey}
@@ -413,6 +525,24 @@ export function TwelvePuntoPage() {
                       }
                     }}
                   >
+                    <td
+                      className="twelve-punto-col-select"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {canSelect ? (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={bulkImporting}
+                          onChange={() => pathId && toggleSelectedId(pathId)}
+                          title="Select row"
+                          aria-label={`Select post ${pathId}`}
+                        />
+                      ) : (
+                        <span className="twelve-punto-bulk-muted">—</span>
+                      )}
+                    </td>
                     <td className="cell-title">{p.title?.trim() || '—'}</td>
                     <td>{p.feed_name ?? '—'}</td>
                     <td>{p.feed_type ?? '—'}</td>
@@ -431,10 +561,10 @@ export function TwelvePuntoPage() {
           </div>
 
           <div className="twelve-punto-pager">
-            <button type="button" disabled={!canGoPrev || loading} onClick={handlePrev}>
+            <button type="button" disabled={!canGoPrev || loading || bulkImporting} onClick={handlePrev}>
               Previous
             </button>
-            <button type="button" disabled={!canGoNext || loading} onClick={handleNext}>
+            <button type="button" disabled={!canGoNext || loading || bulkImporting} onClick={handleNext}>
               Next
             </button>
             <span>
@@ -442,8 +572,24 @@ export function TwelvePuntoPage() {
               {posts.length ? ` · ${posts.length} posts` : ''}
             </span>
           </div>
+
+          <TwelvePuntoBulkToolbar
+            selectedCount={selectedIds.size}
+            busy={bulkImporting}
+            busyLabel={bulkBusyLabel}
+            onClear={handleClearSelection}
+            onBulkImport={() => void handleBulkImport()}
+          />
         </>
       )}
+
+      <TwelvePuntoBulkImportModal
+        open={bulkImportModalOpen}
+        onClose={() => setBulkImportModalOpen(false)}
+        job={bulkImportJob}
+        orderedPostIds={bulkImportOrderedIds}
+        onRetryImported={refreshSidebar}
+      />
     </div>
   )
 }

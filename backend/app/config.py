@@ -18,3 +18,21 @@ SQL_SYNC_DB = os.getenv("DB_NAME", "tpf2")
 SQL_SYNC_USER = os.getenv("DB_USER", "")
 SQL_SYNC_PASS = os.getenv("DB_PASS", "")
 SQL_SYNC_BATCH_SIZE = int(os.getenv("SQL_SYNC_BATCH_SIZE", "200"))
+
+# Twelve Punto external API (backend fetches post detail for bulk import)
+TWELVE_PUNTO_API_BASE = (
+    os.getenv("TWELVE_PUNTO_API_BASE", "").strip().rstrip("/")
+    or "http://ai.12punto.com.tr:8080"
+)
+TWELVE_PUNTO_IMPORT_FETCH_CONCURRENCY = max(
+    1, int(os.getenv("TWELVE_PUNTO_IMPORT_FETCH_CONCURRENCY", "4"))
+)
+TWELVE_PUNTO_IMPORT_HTTP_RETRIES = max(1, int(os.getenv("TWELVE_PUNTO_IMPORT_HTTP_RETRIES", "3")))
+
+
+def _comma_origins(s: str) -> list[str]:
+    return [x.strip().rstrip("/") for x in s.split(",") if x.strip()]
+
+
+# Optional: append more origins when resolving path-only article URLs (merged with in-code defaults + auto-detected origins from post JSON).
+TWELVE_PUNTO_RELATIVE_BASES_EXTRA = _comma_origins(os.getenv("TWELVE_PUNTO_RELATIVE_BASES_EXTRA", ""))

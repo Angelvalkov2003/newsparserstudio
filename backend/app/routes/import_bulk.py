@@ -39,15 +39,8 @@ class ImportBulkBody(BaseModel):
     sites: list[SiteBulkItem]
 
 
-@router.post("/import-bulk")
-def import_bulk(
-    body: ImportBulkBody,
-    authorization: str | None = Header(default=None, alias="Authorization"),
-):
-    user_id, role = _get_current_user_id_and_role(authorization)
-    if role != "admin":
-        raise HTTPException(status_code=403, detail="Admin only")
-    db = get_db()
+def execute_import_bulk(db, user_id: str, body: ImportBulkBody) -> dict:
+    """Shared import logic for POST /import-bulk and Twelve Punto bulk worker."""
     now = datetime.now(timezone.utc).isoformat()
     sites_created = sites_matched = pages_created = pages_matched = parsed_created = parsed_updated = 0
     errors = []
@@ -120,17 +113,27 @@ def import_bulk(
                     errors.append(f"Parsed data validation: {e.detail}")
                     continue
                 try:
-                    doc = {
-                        "page_id": page_id,
-                        "name": p.name.strip() if p.name else None,
+                    name_val = p.name.strip() if p.name else None
+                    set_fields = {
                         "data": data_str,
                         "info": p.info.strip() if p.info else None,
                         "is_verified": p.is_verified,
                         "notes": p.notes.strip() if p.notes else None,
+                        "updated_at": now,
+                    }
+                    if name_val:
+                        existing = db["parsed"].find_one({"page_id": page_id, "name": name_val})
+                        if existing:
+                            db["parsed"].update_one({"_id": existing["_id"]}, {"$set": set_fields})
+                            parsed_updated += 1
+                            continue
+                    doc = {
+                        "page_id": page_id,
+                        "name": name_val,
+                        **set_fields,
                         "created_by": user_id,
                         "allowed_for": [user_id],
                         "created_at": now,
-                        "updated_at": now,
                     }
                     db["parsed"].insert_one(doc)
                     parsed_created += 1
@@ -146,3 +149,15 @@ def import_bulk(
         "parsed_updated": parsed_updated,
         "errors": errors,
     }
+
+
+@router.post("/import-bulk")
+def import_bulk(
+    body: ImportBulkBody,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+):
+    user_id, role = _get_current_user_id_and_role(authorization)
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    db = get_db()
+    return execute_import_bulk(db, user_id, body)
